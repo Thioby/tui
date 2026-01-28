@@ -1,29 +1,6 @@
 part of tui;
 
 /// Top-level view that manages the application lifecycle.
-///
-/// Window is responsible for:
-/// - Terminal setup/teardown
-/// - Screen management and rendering loop
-/// - Keyboard input routing
-/// - Focus management (via FocusManager mixin)
-///
-/// Example:
-/// ```dart
-/// class MyApp extends Window {
-///   MyApp() {
-///     children = [MyMainView()];
-///   }
-///
-///   @override
-///   bool onKey(String key) {
-///     if (key == 'q') { stop(); return true; }
-///     return false;
-///   }
-/// }
-///
-/// void main() => MyApp().start();
-/// ```
 class Window extends View with FocusManager {
   late Screen _screen;
   late RenderLoop _loop;
@@ -34,9 +11,6 @@ class Window extends View with FocusManager {
   View get focusRoot => this;
 
   /// Starts the application.
-  ///
-  /// Sets up the terminal, starts the render loop, and begins
-  /// listening for keyboard input.
   void start() {
     _setupTerminal();
     _startInputListener();
@@ -61,9 +35,7 @@ class Window extends View with FocusManager {
       var termSize = Size(stdout.terminalColumns, stdout.terminalLines);
 
       // Clear screen if terminal was resized
-      if (_lastSize == null ||
-          _lastSize!.width != termSize.width ||
-          _lastSize!.height != termSize.height) {
+      if (_lastSize == null || _lastSize!.width != termSize.width || _lastSize!.height != termSize.height) {
         stdout.write(ANSI.ERASE_SCREEN);
         _lastSize = termSize;
       }
@@ -102,10 +74,6 @@ class Window extends View with FocusManager {
   @override
   bool onKey(String key) => false;
 
-  /// Stops the application and restores the terminal.
-  ///
-  /// Uses scheduleMicrotask to defer cleanup until after
-  /// the current event handler completes.
   void stop() {
     _loop.stop();
     // Defer cleanup to avoid conflicts with stdin event handling

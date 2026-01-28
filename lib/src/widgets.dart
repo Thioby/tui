@@ -14,26 +14,36 @@ class Box extends View {
 
     text.addAll([
       Text(border * width)..color = color,
-      Text(border * width)..color = color..position = Position(0, 1)
+      Text(border * width)
+        ..color = color
+        ..position = Position(0, 1)
     ]);
     for (int i = 1; i < height - 1; i++) {
-      text.add(Text(border * 2)..color = color..position = Position(0, i));
-      text.add(Text(border * 2)..color = color..position = Position(width - 2, i));
+      text.add(Text(border * 2)
+        ..color = color
+        ..position = Position(0, i));
+      text.add(Text(border * 2)
+        ..color = color
+        ..position = Position(width - 2, i));
     }
     text.addAll([
-      Text(border * width)..color = color..position = Position(0, height - 1),
-      Text(border * width)..color = color..position = Position(0, height - 2),
+      Text(border * width)
+        ..color = color
+        ..position = Position(0, height - 1),
+      Text(border * width)
+        ..color = color
+        ..position = Position(0, height - 2),
     ]);
   }
 
   @override
-  void resize_children() {
+  void resizeChildren() {
     for (var view in children) {
-      var child_size = Size.from(size);
-      child_size.height -= 4;
-      child_size.width -= 4;
-      var child_position = Position(2, 2);
-      view.resize(child_size, child_position);
+      var childSize = Size.from(size);
+      childSize.height -= 4;
+      childSize.width -= 4;
+      var childPosition = Position(2, 2);
+      view.resize(childSize, childPosition);
     }
   }
 }
@@ -53,34 +63,19 @@ class CenteredText extends View {
 }
 
 /// Splits available space between children horizontally or vertically.
-///
-/// Example:
-/// ```dart
-/// // Equal horizontal split (side by side)
-/// var split = SplitView(horizontal: true);
-/// split.children = [leftPanel, rightPanel];
-///
-/// // Vertical split with custom ratios (1:2 ratio)
-/// var split = SplitView(horizontal: false, ratios: [1, 2]);
-/// split.children = [topPanel, bottomPanel];
-/// ```
 class SplitView extends View {
   /// If true, children are placed side by side (horizontal).
-  /// If false, children are stacked vertically.
   bool horizontal;
 
-  /// Optional ratios for sizing children.
-  /// If null, space is divided equally.
-  /// Example: [1, 2, 1] gives 25%, 50%, 25% to three children.
+  /// Optional ratios for sizing children. If null, space is divided equally.
   List<int>? ratios;
 
   SplitView({this.horizontal = true, this.ratios});
 
   @override
-  void resize_children() {
+  void resizeChildren() {
     if (children.isEmpty) return;
 
-    // Calculate total ratio including implicit 1s for children without explicit ratios
     int totalRatio = 0;
     for (int i = 0; i < children.length; i++) {
       totalRatio += (ratios != null && i < ratios!.length) ? ratios![i] : 1;
@@ -90,56 +85,35 @@ class SplitView extends View {
 
     int offset = 0;
     for (int i = 0; i < children.length; i++) {
-      final ratio =
-          ratios != null && i < ratios!.length ? ratios![i] : 1;
-      final childSize = (availableSize * ratio / totalRatio).floor();
+      final ratio = ratios != null && i < ratios!.length ? ratios![i] : 1;
+      final childDimension = (availableSize * ratio / totalRatio).floor();
 
       if (horizontal) {
-        children[i].resize(Size(childSize, height), Position(offset, 0));
+        children[i].resize(Size(childDimension, height), Position(offset, 0));
       } else {
-        children[i].resize(Size(width, childSize), Position(0, offset));
+        children[i].resize(Size(width, childDimension), Position(0, offset));
       }
 
-      offset += childSize;
+      offset += childDimension;
     }
   }
 }
 
 /// A progress bar widget.
-///
-/// Example:
-/// ```dart
-/// var progress = ProgressBar()
-///   ..value = 0.75  // 75%
-///   ..showPercent = true
-///   ..color = "2";  // green
-/// ```
 class ProgressBar extends View {
-  /// Progress value from 0.0 to 1.0
   double _value = 0.0;
   double get value => _value;
   set value(double v) => _value = v.clamp(0.0, 1.0);
 
-  /// Whether to show percentage text
   bool showPercent = true;
 
-  /// Color for filled portion (ANSI color code)
-  String color = "2";
-
-  /// Color for empty portion
+  String color = "2"; // green
   String emptyColor = "8";
-
-  /// Characters for rendering
   String filledChar = "█";
   String emptyChar = "░";
-
-  /// Optional label shown before the bar
   String? label;
 
-  // Partial block characters for smooth progress
-  static const List<String> _partialBlocks = [
-    " ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"
-  ];
+  static const List<String> _partialBlocks = [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"];
 
   @override
   void update() {
@@ -152,8 +126,8 @@ class ProgressBar extends View {
       text.add(Text(label!)..color = color);
     }
 
-    int percentWidth = showPercent ? 5 : 0; // " 99%"
-    int barWidth = width - labelWidth - percentWidth - 2; // -2 for [ ]
+    int percentWidth = showPercent ? 5 : 0;
+    int barWidth = width - labelWidth - percentWidth - 2;
     if (barWidth < 1) barWidth = 1;
 
     double filledExact = barWidth * _value;
@@ -161,7 +135,6 @@ class ProgressBar extends View {
     double remainder = filledExact - filledFull;
     int partialIndex = (remainder * 8).round();
 
-    // Build bar content
     var bar = StringBuffer();
     bar.write("[");
     bar.write(filledChar * filledFull);

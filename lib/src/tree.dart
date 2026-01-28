@@ -1,9 +1,8 @@
 part of tui;
 
 class TreeNode {
-
   TreeNode? _parent;
-  List<TreeNode> _children = [];
+  final List<TreeNode> _children = [];
 
   int get depth => _parent != null ? _parent!.depth + 1 : 0;
 
@@ -15,27 +14,38 @@ class TreeNode {
     _children.add(node);
     return node;
   }
-
 }
 
 class TreeNodeIterator implements Iterator<TreeNode> {
   late TreeNode current;
-  TreeModel _model;
-  final _queue = Queue<List>();
+  final TreeModel _model;
+
+  // Use a record or simple class for queue items: [node, nextChildIndex]
+  final _queue = Queue<({TreeNode node, int index})>();
 
   TreeNodeIterator(this._model) {
-    _queue.add([_model.root, 0]);
+    _queue.add((node: _model.root, index: 0));
   }
 
   @override
   bool moveNext() {
     while (_queue.isNotEmpty) {
       var parent = _queue.last;
-      if (parent[0]._children.length > parent[1]) {
-        TreeNode node = parent[0]._children[parent[1]++];
-        current = node;
-        if (node.opened && node._children.isNotEmpty)
-          _queue.add([node, 0]);
+      var node = parent.node;
+      var index = parent.index;
+
+      if (node._children.length > index) {
+        // Increment index for next time we visit this parent
+        _queue.removeLast();
+        _queue.add((node: node, index: index + 1));
+
+        var child = node._children[index];
+        current = child;
+
+        // If open and has children, add to queue to visit its children next
+        if (child.opened && child._children.isNotEmpty) {
+          _queue.add((node: child, index: 0));
+        }
         return true;
       } else {
         _queue.removeLast();
@@ -43,11 +53,9 @@ class TreeNodeIterator implements Iterator<TreeNode> {
     }
     return false;
   }
-
 }
 
 class TreeModel extends IterableBase<TreeNode> {
-
   final _controller = StreamController<Map>.broadcast();
   Stream<Map> get changes => _controller.stream;
 
@@ -59,8 +67,7 @@ class TreeModel extends IterableBase<TreeNode> {
   int? indexOf(TreeNode target) {
     int i = 0;
     for (var node in this) {
-      if (node == target)
-        return i;
+      if (node == target) return i;
       i++;
     }
     return null;
@@ -68,29 +75,13 @@ class TreeModel extends IterableBase<TreeNode> {
 }
 
 /// A View that displays a tree structure with expandable nodes.
-///
-/// Example:
-/// ```dart
-/// class MyTreeView extends TreeView {
-///   MyTreeView(super.model);
-///
-///   @override
-///   String renderNode(TreeNode node) {
-///     return '  ' * node.depth + node.toString();
-///   }
-/// }
-/// ```
 abstract class TreeView extends View {
-
   int scrollOffset = 0;
   int cursor = 0;
 
   TreeModel model;
 
-  /// Color for the selected/cursor row
   String cursorColor = "2";
-
-  /// Color for normal rows
   String normalColor = "7";
 
   TreeView(this.model) {

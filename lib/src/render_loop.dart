@@ -8,24 +8,23 @@ class RenderLoop {
     _interval = Duration(milliseconds: milliseconds);
   }
 
-  void start([Function? update_callback]) {
+  void start([Function? onUpdate]) {
     Timer(_interval, () {
       if (_stop) return;
-      if (update_callback != null) {
-        update_callback();
+      if (onUpdate != null) {
+        onUpdate();
       } else {
         update();
       }
-      Timer(_interval, () => start(update_callback));
+      Timer(_interval, () => start(onUpdate));
     });
   }
 
   void update() {
-    throw "Either pass an update function to start() or extend the RenderLoop and implement update() method.";
+    throw UnimplementedError("Either pass an update function to start() or extend RenderLoop and implement update().");
   }
 
   void stop() {
     _stop = true;
   }
-
 }

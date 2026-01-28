@@ -1,17 +1,11 @@
 part of tui;
 
-/**
- * Screen is the main buffer shared by all Canvas write operations.
- *
- * Once all View.render() methods have been called the Screen writes
- * its buffer to stdout. It will try to optimize things by only writing
- * lines that have changed from the previous buffer.
- *
- */
-class Screen extends Object with Sizable {
-
+/// Screen is the main buffer shared by all Canvas write operations.
+///
+/// Once all [View.render] methods have been called, the Screen writes
+/// its buffer to stdout, optimizing by only writing changed lines.
+class Screen with Sizable {
   List<List<String?>> _buffer = [];
-  List<List<String?>> _previous_buffer = [];
 
   Screen(Size size) {
     this.size = size;
@@ -24,14 +18,15 @@ class Screen extends Object with Sizable {
   }
 
   void clear() {
-    _previous_buffer = _buffer;
     _buffer = List.generate(height, (_) => List.filled(width, null));
   }
 
   Canvas canvas([Size? size, Position? offset]) {
     return Canvas(
-        size ?? Size.from(this.size),
-        offset ?? Position(0, 0), this);
+      size ?? Size.from(this.size),
+      offset ?? Position(0, 0),
+      this,
+    );
   }
 
   @override
@@ -53,5 +48,4 @@ class Screen extends Object with Sizable {
     if (x < 0 || y < 0 || x >= width || y >= height) return '';
     return _buffer[y][x] ?? '';
   }
-
 }

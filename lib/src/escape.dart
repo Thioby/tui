@@ -1,7 +1,6 @@
 part of tui;
 
 abstract class ANSI {
-
   static const String ESC = "\x1b[";
 
   static const String CURSOR_HOME = "${ESC}H";
@@ -16,34 +15,32 @@ abstract class ANSI {
   static const String ERASE_SCREEN = "${ESC}2J";
   static const String ERASE_TO_END_OF_LINE = "${ESC}K";
 
-  String set_cursor_position(int x, int y) {
-    return ESC+"${y+1};${x+1}H";
+  static String setCursorPosition(int x, int y) {
+    return ESC + "${y + 1};${x + 1}H";
   }
 
-  String move_cursor_up(int x) {
+  static String moveCursorUp(int x) {
     if (x < 1) return "";
-    return ESC+"${x}A";
+    return ESC + "${x}A";
   }
 
-  String move_cursor_down(int x) {
+  static String moveCursorDown(int x) {
     if (x < 1) return "";
-    return ESC+"${x}B";
+    return ESC + "${x}B";
   }
 
-  String move_cursor_right(int x) {
+  static String moveCursorRight(int x) {
     if (x < 1) return "";
-    return ESC+"${x}C";
+    return ESC + "${x}C";
   }
 
-  String move_cursor_left(int x) {
+  static String moveCursorLeft(int x) {
     if (x < 1) return "";
-    return ESC+"${x}D";
+    return ESC + "${x}D";
   }
-
 }
 
 abstract class KeyCode {
-
   static const String UP = "${ANSI.ESC}A";
   static const String DOWN = "${ANSI.ESC}B";
   static const String RIGHT = "${ANSI.ESC}C";
@@ -77,5 +74,4 @@ abstract class KeyCode {
   static const String PAGE_DOWN = "${ANSI.ESC}6~";
 
   static const String SPACE = " ";
-
 }

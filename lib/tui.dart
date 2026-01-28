@@ -21,24 +21,32 @@ part 'src/render_loop.dart';
 part 'src/tree.dart';
 
 class Size {
-  int width, height;
+  int width;
+  int height;
+
   Size(this.width, this.height);
-  Size.from(Size size) : width = size.width, height = size.height;
+  Size.from(Size size)
+      : width = size.width,
+        height = size.height;
 }
 
-mixin class Sizable {
+mixin Sizable {
   late Size size;
   int get width => size.width;
   int get height => size.height;
 }
 
 class Position {
-  int x, y;
+  int x;
+  int y;
+
   Position(this.x, this.y);
-  Position.from(Position position) : x = position.x, y = position.y;
+  Position.from(Position position)
+      : x = position.x,
+        y = position.y;
 }
 
-mixin class Positionable {
+mixin Positionable {
   Position position = Position(0, 0);
   int get x => position.x;
   int get y => position.y;

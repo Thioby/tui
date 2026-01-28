@@ -9,7 +9,7 @@ class Panel extends View {
   int counter = 0;
 
   Panel(this.label, this.color, {this.focusColor = "7"}) {
-    focusable = true;  // Enable focus
+    focusable = true; // Enable focus
   }
 
   @override
@@ -57,13 +57,19 @@ class Panel extends View {
 
     // Side borders
     for (int i = 1; i < height - 1; i++) {
-      text.add(Text(vChar)..color = borderColor..position = Position(0, i));
-      text.add(Text(vChar)..color = borderColor..position = Position(width - 1, i));
+      text.add(Text(vChar)
+        ..color = borderColor
+        ..position = Position(0, i));
+      text.add(Text(vChar)
+        ..color = borderColor
+        ..position = Position(width - 1, i));
     }
 
     // Bottom border
     var bottomLine = "$blChar${hChar * (width - 2)}$brChar";
-    text.add(Text(bottomLine)..color = borderColor..position = Position(0, height - 1));
+    text.add(Text(bottomLine)
+      ..color = borderColor
+      ..position = Position(0, height - 1));
 
     // Centered label with counter
     var displayLabel = "$label: $counter";
@@ -75,7 +81,9 @@ class Panel extends View {
     if (focused) {
       var hint = "↑/↓ to change";
       var hx = ((width - hint.length) / 2).toInt();
-      text.add(Text(hint)..color = "8"..position = Position(hx, y + 1));
+      text.add(Text(hint)
+        ..color = "8"
+        ..position = Position(hx, y + 1));
     }
   }
 }
@@ -88,14 +96,14 @@ class ProgressPanel extends View {
   bool paused = false;
 
   ProgressPanel() {
-    focusable = true;  // Enable focus
+    focusable = true; // Enable focus
 
     // Create progress bars with different colors and speeds
     var configs = [
-      ("CPU", "1"),      // red
-      ("Memory", "2"),   // green
-      ("Disk", "3"),     // yellow
-      ("Network", "4"),  // blue
+      ("CPU", "1"), // red
+      ("Memory", "2"), // green
+      ("Disk", "3"), // yellow
+      ("Network", "4"), // blue
     ];
 
     for (var (label, color) in configs) {
@@ -151,16 +159,23 @@ class ProgressPanel extends View {
 
     var title = paused ? " PAUSED " : " PROGRESS ";
     var titleX = ((width - 2 - title.length) / 2).toInt();
-    var topLine = "$tl${hChar * titleX}$title${hChar * (width - 2 - titleX - title.length)}$tr";
+    var topLine =
+        "$tl${hChar * titleX}$title${hChar * (width - 2 - titleX - title.length)}$tr";
     text.add(Text(topLine)..color = borderColor);
 
     for (int i = 1; i < height - 1; i++) {
-      text.add(Text(vChar)..color = borderColor..position = Position(0, i));
-      text.add(Text(vChar)..color = borderColor..position = Position(width - 1, i));
+      text.add(Text(vChar)
+        ..color = borderColor
+        ..position = Position(0, i));
+      text.add(Text(vChar)
+        ..color = borderColor
+        ..position = Position(width - 1, i));
     }
 
     var bottomLine = "$bl${hChar * (width - 2)}$br";
-    text.add(Text(bottomLine)..color = borderColor..position = Position(0, height - 1));
+    text.add(Text(bottomLine)
+      ..color = borderColor
+      ..position = Position(0, height - 1));
 
     // Position progress bars inside the panel
     children = [];
@@ -183,7 +198,7 @@ class LogPanel extends View {
   bool autoScroll = true;
 
   LogPanel() {
-    focusable = true;  // Enable focus
+    focusable = true; // Enable focus
   }
 
   final List<String> logMessages = [
@@ -275,18 +290,25 @@ class LogPanel extends View {
 
     var title = autoScroll ? " LOG " : " LOG (scroll) ";
     var titleX = ((width - 2 - title.length) / 2).toInt();
-    var topLine = "$tl${hChar * titleX}$title${hChar * (width - 2 - titleX - title.length)}$tr";
+    var topLine =
+        "$tl${hChar * titleX}$title${hChar * (width - 2 - titleX - title.length)}$tr";
     text.add(Text(topLine)..color = borderColor);
 
     // Side borders
     for (int i = 1; i < height - 1; i++) {
-      text.add(Text(vChar)..color = borderColor..position = Position(0, i));
-      text.add(Text(vChar)..color = borderColor..position = Position(width - 1, i));
+      text.add(Text(vChar)
+        ..color = borderColor
+        ..position = Position(0, i));
+      text.add(Text(vChar)
+        ..color = borderColor
+        ..position = Position(width - 1, i));
     }
 
     // Bottom border
     var bottomLine = "$bl${hChar * (width - 2)}$br";
-    text.add(Text(bottomLine)..color = borderColor..position = Position(0, height - 1));
+    text.add(Text(bottomLine)
+      ..color = borderColor
+      ..position = Position(0, height - 1));
 
     // Log lines
     int visibleLines = height - 2;
@@ -315,7 +337,6 @@ class LogPanel extends View {
 }
 
 class SplitDemo extends Window {
-
   late SplitView mainSplit;
   late SplitView leftSplit;
   late LogPanel logPanel;

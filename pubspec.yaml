@@ -6,7 +6,6 @@ environment:
 homepage: https://github.com/damoti/tui
 description: >
   Text-based User Interface components for building console application.
-author: Lex Berezhny <lex@damoti.com>
 dependencies:
   path: ^1.9.0
 dev_dependencies:

@@ -261,8 +261,8 @@ void main() {
 
       box.resize(Size(20, 10), Position(0, 0));
 
-      expect(child.width, equals(16));  // 20 - 4
-      expect(child.height, equals(6));   // 10 - 4
+      expect(child.width, equals(16)); // 20 - 4
+      expect(child.height, equals(6)); // 10 - 4
     });
 
     test('positions child at offset 2,2', () {

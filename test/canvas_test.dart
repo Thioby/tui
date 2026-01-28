@@ -81,8 +81,8 @@ void main() {
 
         expect(child.width, equals(10));
         expect(child.height, equals(5));
-        expect(child.x, equals(5));  // 2+3
-        expect(child.y, equals(3));  // 1+2
+        expect(child.x, equals(5)); // 2+3
+        expect(child.y, equals(3)); // 1+2
       });
 
       test('nested canvas write goes to correct screen position', () {
@@ -97,8 +97,8 @@ void main() {
         var level2 = level1.canvas(Size(15, 7), Position(1, 1));
         var level3 = level2.canvas(Size(10, 5), Position(2, 1));
 
-        expect(level3.x, equals(4));  // 1+1+2
-        expect(level3.y, equals(2));  // 0+1+1
+        expect(level3.x, equals(4)); // 1+1+2
+        expect(level3.y, equals(2)); // 0+1+1
 
         level3.write(0, 0, 'D');
         expect(screen.stringAt(4, 2), equals('D'));
