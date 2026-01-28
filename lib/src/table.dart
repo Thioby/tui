@@ -193,15 +193,15 @@ class Table<T> extends View {
     // Calculate widths for columns without explicit width
     for (var col in columns) {
       if (col.width == null) {
-        col.width = col.title.length;
+        var maxWidth = col.title.length;
         for (var row in rows) {
           var cells = rowBuilder(row);
           var idx = columns.indexOf(col);
-          if (idx < cells.length && cells[idx].length > col.width!) {
-            col.width = cells[idx].length;
+          if (idx < cells.length && cells[idx].length > maxWidth) {
+            maxWidth = cells[idx].length;
           }
         }
-        col.width = col.width! + 2; // padding
+        col.width = maxWidth + 2; // +2 for cell padding (space on each side)
       }
     }
   }
@@ -223,17 +223,41 @@ class Table<T> extends View {
   _BorderChars get _borderChars {
     switch (border) {
       case TableBorder.none:
-        return _BorderChars(' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+        return _BorderChars(
+          tl: ' ', h: ' ', tr: ' ', v: ' ',
+          ml: ' ', mr: ' ', bl: ' ', br: ' ',
+          tm: ' ', mm: ' ', bm: ' ',
+        );
       case TableBorder.ascii:
-        return _BorderChars('+', '-', '+', '|', '+', '+', '+', '+');
+        return _BorderChars(
+          tl: '+', h: '-', tr: '+', v: '|',
+          ml: '+', mr: '+', bl: '+', br: '+',
+          tm: '+', mm: '+', bm: '+',
+        );
       case TableBorder.light:
-        return _BorderChars('┌', '─', '┐', '│', '├', '┤', '└', '┘');
+        return _BorderChars(
+          tl: '┌', h: '─', tr: '┐', v: '│',
+          ml: '├', mr: '┤', bl: '└', br: '┘',
+          tm: '┬', mm: '┼', bm: '┴',
+        );
       case TableBorder.heavy:
-        return _BorderChars('┏', '━', '┓', '┃', '┣', '┫', '┗', '┛');
+        return _BorderChars(
+          tl: '┏', h: '━', tr: '┓', v: '┃',
+          ml: '┣', mr: '┫', bl: '┗', br: '┛',
+          tm: '┳', mm: '╋', bm: '┻',
+        );
       case TableBorder.double:
-        return _BorderChars('╔', '═', '╗', '║', '╠', '╣', '╚', '╝');
+        return _BorderChars(
+          tl: '╔', h: '═', tr: '╗', v: '║',
+          ml: '╠', mr: '╣', bl: '╚', br: '╝',
+          tm: '╦', mm: '╬', bm: '╩',
+        );
       case TableBorder.rounded:
-        return _BorderChars('╭', '─', '╮', '│', '├', '┤', '╰', '╯');
+        return _BorderChars(
+          tl: '╭', h: '─', tr: '╮', v: '│',
+          ml: '├', mr: '┤', bl: '╰', br: '╯',
+          tm: '┬', mm: '┼', bm: '┴',
+        );
     }
   }
 
@@ -247,14 +271,10 @@ class Table<T> extends View {
     var chars = _borderChars;
     var y = 0;
 
-    // Calculate total table width
-    var totalWidth = columns.fold<int>(0, (sum, col) => sum + col.width!) +
-        columns.length + 1; // +1 for borders
-
-    // Top border
+    // Top border with T-pieces at column intersections
     if (border != TableBorder.none) {
       var topLine = chars.tl +
-          columns.map((c) => chars.h * c.width!).join(chars.h) +
+          columns.map((c) => chars.h * c.width!).join(chars.tm) +
           chars.tr;
       if (topLine.length > width) topLine = topLine.substring(0, width);
       text.add(Text(topLine)
@@ -265,17 +285,17 @@ class Table<T> extends View {
     // Header
     if (showHeader) {
       var headerLine = chars.v +
-          columns.map((c) => _alignText(c.title, c.width!, c.align)).join(chars.v) +
+          columns.map((c) => _alignText(' ${c.title} ', c.width!, c.align)).join(chars.v) +
           chars.v;
       if (headerLine.length > width) headerLine = headerLine.substring(0, width);
       text.add(Text(headerLine)
         ..color = headerColor
         ..position = Position(0, y++));
 
-      // Header separator
+      // Header separator with cross pieces at intersections
       if (border != TableBorder.none) {
         var sepLine = chars.ml +
-            columns.map((c) => chars.h * c.width!).join(chars.h) +
+            columns.map((c) => chars.h * c.width!).join(chars.mm) +
             chars.mr;
         if (sepLine.length > width) sepLine = sepLine.substring(0, width);
         text.add(Text(sepLine)
@@ -296,7 +316,7 @@ class Table<T> extends View {
             var idx = e.key;
             var col = e.value;
             var cellText = idx < cells.length ? cells[idx] : '';
-            return _alignText(cellText, col.width!, col.align);
+            return _alignText(' $cellText ', col.width!, col.align);
           }).join(chars.v) +
           chars.v;
 
@@ -307,10 +327,10 @@ class Table<T> extends View {
         ..position = Position(0, y++));
     }
 
-    // Bottom border
+    // Bottom border with T-pieces at column intersections
     if (border != TableBorder.none) {
       var bottomLine = chars.bl +
-          columns.map((c) => chars.h * c.width!).join(chars.h) +
+          columns.map((c) => chars.h * c.width!).join(chars.bm) +
           chars.br;
       if (bottomLine.length > width) bottomLine = bottomLine.substring(0, width);
       text.add(Text(bottomLine)
@@ -322,5 +342,19 @@ class Table<T> extends View {
 
 class _BorderChars {
   final String tl, h, tr, v, ml, mr, bl, br;
-  _BorderChars(this.tl, this.h, this.tr, this.v, this.ml, this.mr, this.bl, this.br);
+  final String tm, mm, bm; // T-pieces: top-middle, middle-middle (cross), bottom-middle
+
+  _BorderChars({
+    required this.tl,
+    required this.h,
+    required this.tr,
+    required this.v,
+    required this.ml,
+    required this.mr,
+    required this.bl,
+    required this.br,
+    required this.tm,
+    required this.mm,
+    required this.bm,
+  });
 }
