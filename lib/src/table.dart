@@ -90,7 +90,7 @@ class Table<T> extends View {
   String rowColor = '0';
 
   /// Color for border (ANSI code).
-  String borderColor = '8';
+  String borderColor = '36';
 
   /// Called when Enter is pressed on a row.
   void Function(T row)? onSelect;
