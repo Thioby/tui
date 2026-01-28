@@ -119,7 +119,11 @@ class Window extends View with FocusManager {
     stdout.write(ANSI.SHOW_CURSOR);
     stdout.write(ANSI.ERASE_SCREEN);
     stdout.write(ANSI.CURSOR_HOME);
-    stdin.echoMode = true;
-    stdin.lineMode = true;
+    try {
+      stdin.echoMode = true;
+      stdin.lineMode = true;
+    } on StdinException {
+      // Terminal may already be in bad state during shutdown
+    }
   }
 }
