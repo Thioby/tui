@@ -1,6 +1,15 @@
 import 'package:test/test.dart';
 import 'package:tui/tui.dart';
 
+/// Test class that uses FocusManager mixin
+class TestFocusContainer with FocusManager {
+  View root;
+  TestFocusContainer(this.root);
+
+  @override
+  View get focusRoot => root;
+}
+
 /// Focusable test view that tracks callbacks
 class FocusableView extends View {
   bool onFocusCalled = false;
@@ -185,6 +194,89 @@ void main() {
       expect(focusable[0], same(view1));
       expect(focusable[1], same(view2));
       expect(focusable[2], same(view3));
+    });
+  });
+
+  group('FocusManager mixin', () {
+    late NonFocusableView root;
+    late FocusableView view1;
+    late FocusableView view2;
+    late FocusableView view3;
+    late TestFocusContainer manager;
+
+    setUp(() {
+      root = NonFocusableView();
+      view1 = FocusableView();
+      view2 = FocusableView();
+      view3 = FocusableView();
+      root.children = [view1, view2, view3];
+      manager = TestFocusContainer(root);
+    });
+
+    test('focusFirst focuses the first focusable view', () {
+      manager.focusFirst();
+      expect(manager.focusedView, same(view1));
+      expect(view1.focused, isTrue);
+    });
+
+    test('focus sets focused state and calls callbacks', () {
+      manager.focus(view2);
+
+      expect(manager.focusedView, same(view2));
+      expect(view2.focused, isTrue);
+      expect(view2.onFocusCalled, isTrue);
+    });
+
+    test('focus calls onBlur on previous view', () {
+      manager.focus(view1);
+      manager.focus(view2);
+
+      expect(view1.focused, isFalse);
+      expect(view1.onBlurCalled, isTrue);
+      expect(view2.focused, isTrue);
+    });
+
+    test('focusNext cycles through views', () {
+      manager.focusFirst();
+      expect(manager.focusedView, same(view1));
+
+      manager.focusNext();
+      expect(manager.focusedView, same(view2));
+
+      manager.focusNext();
+      expect(manager.focusedView, same(view3));
+
+      manager.focusNext();
+      expect(manager.focusedView, same(view1)); // Cycles back
+    });
+
+    test('focusPrev cycles backwards', () {
+      manager.focus(view1);
+
+      manager.focusPrev();
+      expect(manager.focusedView, same(view3)); // Cycles to end
+
+      manager.focusPrev();
+      expect(manager.focusedView, same(view2));
+    });
+
+    test('routeKeyToFocused sends key to focused view', () {
+      manager.focus(view1);
+      var handled = manager.routeKeyToFocused('x');
+
+      expect(handled, isTrue);
+      expect(view1.keysReceived, contains('x'));
+    });
+
+    test('routeKeyToFocused returns false when no view focused', () {
+      var handled = manager.routeKeyToFocused('x');
+      expect(handled, isFalse);
+    });
+
+    test('focus ignores non-focusable views', () {
+      var nonFocusable = NonFocusableView();
+      manager.focus(nonFocusable);
+      expect(manager.focusedView, isNull);
     });
   });
 }

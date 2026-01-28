@@ -1,9 +1,13 @@
 name: 'tui'
 version: 0.0.1
+
+environment:
+  sdk: ^3.6.0
 homepage: https://github.com/damoti/tui
 description: >
   Text-based User Interface components for building console application.
 author: Lex Berezhny <lex@damoti.com>
+dependencies:
+  path: ^1.9.0
 dev_dependencies:
-  path: any
-  unittest: any
+  test: ^1.25.0

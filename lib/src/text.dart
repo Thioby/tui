@@ -8,27 +8,28 @@ class _TextNodeIteratorPointer {
 class TextNodeIterator implements Iterator<String> {
 
   // represents single character
-  String current;
+  String current = '';
 
   // all of the parent nodes of the last String returned
   List<Text> last_stack = [];
 
   // current text node
-  Iterator<String> string;
+  Iterator<String>? string;
 
   // all of the parent text nodes, this is used to
   // apply all of the previous styles up to this point
-  final stack = new Queue<_TextNodeIteratorPointer>();
+  final stack = Queue<_TextNodeIteratorPointer>();
 
   TextNodeIterator(Text _first) {
-    stack.add(new _TextNodeIteratorPointer(_first, 0));
+    stack.add(_TextNodeIteratorPointer(_first, 0));
   }
 
+  @override
   bool moveNext() {
 
     if (string != null) {
-      if (string.moveNext()) {
-        current = string.current;
+      if (string!.moveNext()) {
+        current = string!.current;
         return true;
       } else {
         string = null;
@@ -40,12 +41,12 @@ class TextNodeIterator implements Iterator<String> {
       var last = stack.last;
       Text node = last.node;
       if (node.isLeaf) {
-        last_stack = stack.map((p)=>p.node).toList();
-        string = node.text.split('').iterator;
+        last_stack = stack.map((p) => p.node).toList();
+        string = node.text!.split('').iterator;
         return moveNext();
       } else if (node._nodes.length > last.index) {
         Text child_node = node._nodes[last.index++];
-        stack.add(new _TextNodeIteratorPointer(child_node, 0));
+        stack.add(_TextNodeIteratorPointer(child_node, 0));
       } else {
         node = stack.removeLast().node;
       }
@@ -72,9 +73,9 @@ class Text extends IterableBase<String> with Positionable {
   bool get isLeaf => _text != null;
   bool get hasChildren => _nodes.isNotEmpty;
 
-  String _text;
-  String get text => _text;
-  void set text(String text) {
+  String? _text;
+  String? get text => _text;
+  set text(String? text) {
     if (hasChildren) throw "Cannot set text on container type.";
     _text = text;
   }
@@ -87,9 +88,10 @@ class Text extends IterableBase<String> with Positionable {
 
   bool bold = false;
   bool italics = false;
-  String color;
+  String? color;
 
-  TextNodeIterator get iterator => new TextNodeIterator(this);
+  @override
+  TextNodeIterator get iterator => TextNodeIterator(this);
 
   Text([this._text]);
 
@@ -127,7 +129,7 @@ class Text extends IterableBase<String> with Positionable {
   }
 
   Text add([String text = ""]) {
-    var node = new Text(text);
+    var node = Text(text);
     nodes.add(node);
     return node;
   }

@@ -11,8 +11,10 @@ part 'src/canvas.dart';
 
 part 'src/text.dart';
 part 'src/view.dart';
+part 'src/widgets.dart';
 
 part 'src/escape.dart';
+part 'src/focus.dart';
 part 'src/window.dart';
 part 'src/render_loop.dart';
 
@@ -21,14 +23,11 @@ part 'src/tree.dart';
 class Size {
   int width, height;
   Size(this.width, this.height);
-  Size.from(Size size) {
-    width = size.width;
-    height = size.height;
-  }
+  Size.from(Size size) : width = size.width, height = size.height;
 }
 
-abstract class Sizable {
-  Size size;
+mixin class Sizable {
+  late Size size;
   int get width => size.width;
   int get height => size.height;
 }
@@ -36,14 +35,11 @@ abstract class Sizable {
 class Position {
   int x, y;
   Position(this.x, this.y);
-  Position.from(Position position) {
-    x = position.x;
-    y = position.y;
-  }
+  Position.from(Position position) : x = position.x, y = position.y;
 }
 
-class Positionable {
-  Position position = new Position(0,0);
+mixin class Positionable {
+  Position position = Position(0, 0);
   int get x => position.x;
   int get y => position.y;
 }

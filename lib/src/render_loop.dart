@@ -1,22 +1,22 @@
 part of tui;
 
 class RenderLoop {
-  Duration _interval;
+  late Duration _interval;
   bool _stop = false;
 
-  RenderLoop({int milliseconds: 50}) {
-    _interval = new Duration(milliseconds: milliseconds);
+  RenderLoop({int milliseconds = 50}) {
+    _interval = Duration(milliseconds: milliseconds);
   }
 
-  void start([Function update_callback]) {
-    new Timer(_interval, () {
+  void start([Function? update_callback]) {
+    Timer(_interval, () {
       if (_stop) return;
       if (update_callback != null) {
         update_callback();
       } else {
         update();
       }
-      new Timer(_interval, ()=>start(update_callback));
+      Timer(_interval, () => start(update_callback));
     });
   }
 
