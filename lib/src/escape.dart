@@ -52,6 +52,12 @@ abstract class KeyCode {
   static const String HOME = "${ANSI.ESC}H";
   static const String END = "${ANSI.ESC}F";
 
+  static const String TAB = "\t";
+  static const String SHIFT_TAB = "${ANSI.ESC}Z";
+  static const String ENTER = "\n";
+  static const String ESCAPE = "\x1b";
+  static const String BACKSPACE = "\x7f";
+
   static const String F1 = "${ANSI.ESC}M";
   static const String F2 = "${ANSI.ESC}N";
   static const String F3 = "${ANSI.ESC}O";

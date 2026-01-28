@@ -7,6 +7,32 @@ abstract class View extends Object with Sizable, Positionable {
   List<Text> text = [];
   List<View> children = [];
 
+  /// Whether this view can receive focus
+  bool focusable = false;
+
+  /// Whether this view currently has focus
+  bool focused = false;
+
+  /// Called when this view receives focus
+  void onFocus() {}
+
+  /// Called when this view loses focus
+  void onBlur() {}
+
+  /// Called when a key is pressed while this view has focus.
+  /// Return true if the key was handled, false to propagate to parent.
+  bool onKey(String key) => false;
+
+  /// Collects all focusable views in tree order
+  List<View> get focusableViews {
+    var result = <View>[];
+    if (focusable) result.add(this);
+    for (var child in children) {
+      result.addAll(child.focusableViews);
+    }
+    return result;
+  }
+
   // The update() method is called by resize() or from your
   // own code when something about the data this view represents
   // changes. Common thing is to use this in callbacks for async
@@ -106,11 +132,10 @@ abstract class View extends Object with Sizable, Positionable {
     }
   }
 
-  // default implementation just calls each child
-  // with it's existing size/position to trigger the initial update
+  // default implementation passes parent's size to children
   void resize_children() {
     for (var view in children) {
-      view.resize(view.size, view.position);
+      view.resize(Size.from(size), view.position);
     }
   }
 
@@ -170,5 +195,146 @@ class CenteredText extends View {
     var x = ((width/2)-(content.length/2)).toInt();
     var y = (height/2).toInt()-1;
     text = [new Text(content)..position=new Position(x,y)];
+  }
+}
+
+/// Splits available space between children horizontally or vertically.
+///
+/// Example:
+/// ```dart
+/// // Equal horizontal split (side by side)
+/// var split = SplitView(horizontal: true);
+/// split.children = [leftPanel, rightPanel];
+///
+/// // Vertical split with custom ratios (1:2 ratio)
+/// var split = SplitView(horizontal: false, ratios: [1, 2]);
+/// split.children = [topPanel, bottomPanel];
+/// ```
+class SplitView extends View {
+
+  /// If true, children are placed side by side (horizontal).
+  /// If false, children are stacked vertically.
+  bool horizontal;
+
+  /// Optional ratios for sizing children.
+  /// If null, space is divided equally.
+  /// Example: [1, 2, 1] gives 25%, 50%, 25% to three children.
+  List<int>? ratios;
+
+  SplitView({this.horizontal = true, this.ratios});
+
+  @override
+  void resize_children() {
+    if (children.isEmpty) return;
+
+    final totalRatio = ratios?.fold(0, (sum, r) => sum + r)
+                       ?? children.length;
+    final availableSize = horizontal ? width : height;
+
+    int offset = 0;
+    for (int i = 0; i < children.length; i++) {
+      final ratio = ratios != null && i < ratios!.length
+                    ? ratios![i]
+                    : 1;
+      final childSize = (availableSize * ratio / totalRatio).floor();
+
+      if (horizontal) {
+        children[i].resize(
+          Size(childSize, height),
+          Position(offset, 0)
+        );
+      } else {
+        children[i].resize(
+          Size(width, childSize),
+          Position(0, offset)
+        );
+      }
+
+      offset += childSize;
+    }
+  }
+}
+
+/// A progress bar widget.
+///
+/// Example:
+/// ```dart
+/// var progress = ProgressBar()
+///   ..value = 0.75  // 75%
+///   ..showPercent = true
+///   ..color = "2";  // green
+/// ```
+class ProgressBar extends View {
+
+  /// Progress value from 0.0 to 1.0
+  double _value = 0.0;
+  double get value => _value;
+  set value(double v) => _value = v.clamp(0.0, 1.0);
+
+  /// Whether to show percentage text
+  bool showPercent = true;
+
+  /// Color for filled portion (ANSI color code)
+  String color = "2";
+
+  /// Color for empty portion
+  String emptyColor = "8";
+
+  /// Characters for rendering
+  String filledChar = "█";
+  String emptyChar = "░";
+
+  /// Optional label shown before the bar
+  String? label;
+
+  // Partial block characters for smooth progress
+  static const List<String> _partialBlocks = [
+    " ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"
+  ];
+
+  @override
+  void update() {
+    text = [];
+    if (width < 3 || height < 1) return;
+
+    int labelWidth = 0;
+    if (label != null) {
+      labelWidth = label!.length + 1;
+      text.add(Text(label!)..color = color);
+    }
+
+    int percentWidth = showPercent ? 5 : 0; // " 99%"
+    int barWidth = width - labelWidth - percentWidth - 2; // -2 for [ ]
+    if (barWidth < 1) barWidth = 1;
+
+    double filledExact = barWidth * _value;
+    int filledFull = filledExact.floor();
+    double remainder = filledExact - filledFull;
+    int partialIndex = (remainder * 8).round();
+
+    // Build bar content
+    var bar = StringBuffer();
+    bar.write("[");
+    bar.write(filledChar * filledFull);
+
+    if (filledFull < barWidth) {
+      if (partialIndex > 0 && partialIndex < 8) {
+        bar.write(_partialBlocks[partialIndex]);
+        bar.write(emptyChar * (barWidth - filledFull - 1));
+      } else {
+        bar.write(emptyChar * (barWidth - filledFull));
+      }
+    }
+    bar.write("]");
+
+    if (showPercent) {
+      int pct = (_value * 100).round();
+      bar.write(pct.toString().padLeft(4));
+      bar.write("%");
+    }
+
+    text.add(Text(bar.toString())
+      ..color = color
+      ..position = Position(labelWidth, 0));
   }
 }

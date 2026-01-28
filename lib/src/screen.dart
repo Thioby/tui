@@ -10,8 +10,8 @@ part of tui;
  */
 class Screen extends Object with Sizable {
 
-  List<List<String>> _buffer = [];
-  List<List<String>> _previous_buffer = [];
+  List<List<String?>> _buffer = [];
+  List<List<String?>> _previous_buffer = [];
 
   Screen(Size size) {
     this.size = size;
@@ -25,29 +25,33 @@ class Screen extends Object with Sizable {
 
   void clear() {
     _previous_buffer = _buffer;
-    _buffer = new List.generate(height, (_)=>new List.filled(width, null));
+    _buffer = List.generate(height, (_) => List.filled(width, null));
   }
 
-  Canvas canvas([Size size, Position offset]) {
-    return new Canvas(
-        size!=null?size:new Size.from(this.size),
-        offset!=null?offset:new Position(0,0), this);
+  Canvas canvas([Size? size, Position? offset]) {
+    return Canvas(
+        size ?? Size.from(this.size),
+        offset ?? Position(0, 0), this);
   }
 
+  @override
   String toString() {
-    return _buffer.map((line)=>line.map((char)=>char!=null?char:" ").join()).join('\n');
+    return _buffer.map((line) => line.map((char) => char ?? " ").join()).join('\n');
   }
 
   bool occluded(int x, int y) {
+    if (x < 0 || y < 0 || x >= width || y >= height) return true;
     return _buffer[y][x] != null;
   }
 
   void write(int x, int y, String char) {
+    if (x < 0 || y < 0 || x >= width || y >= height) return;
     _buffer[y][x] = char;
   }
 
   String stringAt(int x, int y) {
-    return _buffer[y][x];
+    if (x < 0 || y < 0 || x >= width || y >= height) return '';
+    return _buffer[y][x] ?? '';
   }
 
 }
