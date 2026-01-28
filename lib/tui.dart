@@ -22,6 +22,11 @@ part 'src/tree.dart';
 part 'src/page_view.dart';
 part 'src/page_indicator.dart';
 part 'src/navigation_bar.dart';
+part 'src/input.dart';
+part 'src/select.dart';
+part 'src/textarea.dart';
+part 'src/spinner.dart';
+part 'src/table.dart';
 
 class Size {
   int width;
@@ -34,7 +39,7 @@ class Size {
 }
 
 mixin Sizable {
-  late Size size;
+  Size size = Size(0, 0);
   int get width => size.width;
   int get height => size.height;
 }
