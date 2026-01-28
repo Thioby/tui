@@ -111,7 +111,12 @@ class Table<T> extends View {
     focusable = selectable;
   }
 
-  int get _headerHeight => showHeader ? 1 : 0;
+  int get _headerHeight {
+    if (!showHeader) return 0;
+    // Header line + separator line (if bordered)
+    return border != TableBorder.none ? 2 : 1;
+  }
+
   int get _borderHeight => border != TableBorder.none ? 2 : 0;
   int get _visibleRows => height - _headerHeight - _borderHeight;
 
