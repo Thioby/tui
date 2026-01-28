@@ -19,6 +19,9 @@ part 'src/window.dart';
 part 'src/render_loop.dart';
 
 part 'src/tree.dart';
+part 'src/page_view.dart';
+part 'src/page_indicator.dart';
+part 'src/navigation_bar.dart';
 
 class Size {
   int width;

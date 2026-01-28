@@ -290,4 +290,86 @@ void main() {
       expect(centered.text[0].y, equals(4));
     });
   });
+
+  group('Frame', () {
+    test('draws border without title', () {
+      var frame = Frame();
+      frame.resize(Size(10, 5), Position(0, 0));
+
+      // Should have: top border, side borders (3 rows x 2), bottom border
+      expect(frame.text.isNotEmpty, isTrue);
+
+      // First text should be top border starting with ┌
+      expect(frame.text[0].text!.startsWith('┌'), isTrue);
+      expect(frame.text[0].text!.endsWith('┐'), isTrue);
+    });
+
+    test('draws border with title', () {
+      var frame = Frame(title: 'Test');
+      frame.resize(Size(20, 5), Position(0, 0));
+
+      // Top border should contain title
+      expect(frame.text[0].text!.contains('Test'), isTrue);
+      expect(frame.text[0].text!.startsWith('┌─ Test'), isTrue);
+    });
+
+    test('positions children inside frame with padding', () {
+      var frame = Frame(padding: 1);
+      var child = TestView();
+      frame.children = [child];
+
+      frame.resize(Size(20, 10), Position(0, 0));
+
+      // Child should be inside frame: 1 (border) + 1 (padding) = 2
+      expect(child.x, equals(2));
+      expect(child.y, equals(2));
+      // Size: 20 - 2 (borders) - 2 (padding) = 16
+      expect(child.width, equals(16));
+      expect(child.height, equals(6)); // 10 - 2 - 2
+    });
+
+    test('positions children with zero padding', () {
+      var frame = Frame(padding: 0);
+      var child = TestView();
+      frame.children = [child];
+
+      frame.resize(Size(20, 10), Position(0, 0));
+
+      // Child should be just inside border
+      expect(child.x, equals(1));
+      expect(child.y, equals(1));
+      expect(child.width, equals(18)); // 20 - 2
+      expect(child.height, equals(8)); // 10 - 2
+    });
+
+    test('uses custom color', () {
+      var frame = Frame(color: '31');
+      frame.resize(Size(10, 5), Position(0, 0));
+
+      expect(frame.text[0].color, equals('31'));
+    });
+
+    test('handles small size gracefully', () {
+      var frame = Frame(title: 'Long Title');
+      frame.resize(Size(3, 2), Position(0, 0));
+
+      // Should not crash, text may be empty for very small sizes
+      expect(frame.text, isEmpty);
+    });
+
+    test('resizes multiple children to same area', () {
+      var frame = Frame(padding: 0);
+      var child1 = TestView();
+      var child2 = TestView();
+      frame.children = [child1, child2];
+
+      frame.resize(Size(20, 10), Position(0, 0));
+
+      // Both children get same size and position (stacked)
+      expect(child1.width, equals(child2.width));
+      expect(child1.height, equals(child2.height));
+      expect(child1.x, equals(child2.x));
+      expect(child1.y, equals(child2.y));
+    });
+  });
 }

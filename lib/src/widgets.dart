@@ -99,6 +99,83 @@ class SplitView extends View {
   }
 }
 
+/// A frame with Unicode border and optional title.
+///
+/// Example:
+/// ```dart
+/// Frame(title: 'Status', color: '36')
+///   ..children = [myContent];
+/// ```
+///
+/// Renders as:
+/// ```
+/// ┌─ Status ────────┐
+/// │                 │
+/// │  [content]      │
+/// │                 │
+/// └─────────────────┘
+/// ```
+class Frame extends View {
+  String? title;
+  String color;
+  int padding;
+
+  Frame({this.title, this.color = '36', this.padding = 1});
+
+  @override
+  void update() {
+    if (width < 4 || height < 3) {
+      text = [];
+      return;
+    }
+
+    var innerWidth = width - 2;
+
+    // Top border with optional title
+    String topBorder;
+    if (title != null && title!.isNotEmpty) {
+      var titleText = ' $title ';
+      var remaining = innerWidth - titleText.length - 1;
+      if (remaining < 0) remaining = 0;
+      topBorder = '┌─$titleText${'─' * remaining}┐';
+    } else {
+      topBorder = '┌${'─' * innerWidth}┐';
+    }
+
+    text = [Text(topBorder)..color = color];
+
+    // Side borders
+    for (var i = 1; i < height - 1; i++) {
+      text.add(Text('│')
+        ..color = color
+        ..position = Position(0, i));
+      text.add(Text('│')
+        ..color = color
+        ..position = Position(width - 1, i));
+    }
+
+    // Bottom border
+    text.add(Text('└${'─' * innerWidth}┘')
+      ..color = color
+      ..position = Position(0, height - 1));
+  }
+
+  @override
+  void resizeChildren() {
+    var innerWidth = width - 2 - (padding * 2);
+    var innerHeight = height - 2 - (padding * 2);
+    if (innerWidth < 1) innerWidth = 1;
+    if (innerHeight < 1) innerHeight = 1;
+
+    for (var child in children) {
+      child.resize(
+        Size(innerWidth, innerHeight),
+        Position(1 + padding, 1 + padding),
+      );
+    }
+  }
+}
+
 /// A progress bar widget.
 class ProgressBar extends View {
   double _value = 0.0;
