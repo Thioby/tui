@@ -24,9 +24,8 @@ class Canvas extends Object with Sizable, Positionable {
 
   // Create a new canvas offset from this one.
   Canvas canvas(Size size, Position offset) {
-    offset.x += x;
-    offset.y += y;
-    return new Canvas(size!=null?size:new Size.from(this.size), offset, this._screen);
+    var combinedOffset = Position(offset.x + x, offset.y + y);
+    return Canvas(size, combinedOffset, _screen);
   }
 
   // Returns true if there is already something written at this point.

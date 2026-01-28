@@ -2,13 +2,13 @@ part of tui;
 
 class TreeNode {
 
-  TreeNode _parent;
+  TreeNode? _parent;
   List<TreeNode> _children = [];
 
-  int get depth => _parent!=null ? _parent.depth + 1 : 0;
+  int get depth => _parent != null ? _parent!.depth + 1 : 0;
 
   bool opened = false;
-  bool leaf = null;
+  bool leaf = false;
 
   TreeNode add(TreeNode node) {
     node._parent = this;
@@ -19,14 +19,15 @@ class TreeNode {
 }
 
 class TreeNodeIterator implements Iterator<TreeNode> {
-  TreeNode current;
+  late TreeNode current;
   TreeModel _model;
-  final _queue = new Queue<List>();
+  final _queue = Queue<List>();
 
   TreeNodeIterator(this._model) {
     _queue.add([_model.root, 0]);
   }
 
+  @override
   bool moveNext() {
     while (_queue.isNotEmpty) {
       var parent = _queue.last;
@@ -47,14 +48,15 @@ class TreeNodeIterator implements Iterator<TreeNode> {
 
 class TreeModel extends IterableBase<TreeNode> {
 
-  final _controller = new StreamController<Map>.broadcast();
-  Stream<Set> get changes => _controller.stream;
+  final _controller = StreamController<Map>.broadcast();
+  Stream<Map> get changes => _controller.stream;
 
-  final root = new TreeNode();
+  final root = TreeNode();
 
-  Iterator<TreeNode> get iterator => new TreeNodeIterator(this);
+  @override
+  Iterator<TreeNode> get iterator => TreeNodeIterator(this);
 
-  int indexOf(TreeNode target) {
+  int? indexOf(TreeNode target) {
     int i = 0;
     for (var node in this) {
       if (node == target)
@@ -65,77 +67,119 @@ class TreeModel extends IterableBase<TreeNode> {
   }
 }
 
-class View2 {
-  int row;
-  int col;
-  int height;
-  int width;
-}
+/// A View that displays a tree structure with expandable nodes.
+///
+/// Example:
+/// ```dart
+/// class MyTreeView extends TreeView {
+///   MyTreeView(super.model);
+///
+///   @override
+///   String renderNode(TreeNode node) {
+///     return '  ' * node.depth + node.toString();
+///   }
+/// }
+/// ```
+abstract class TreeView extends View {
 
-abstract class TreeView extends View2 {
-
-  int position = 0;
+  int scrollOffset = 0;
   int cursor = 0;
 
-  TreeModel _model;
+  TreeModel model;
 
-  TreeView(this._model);
+  /// Color for the selected/cursor row
+  String cursorColor = "2";
 
-  void move_up() {
+  /// Color for normal rows
+  String normalColor = "7";
 
+  TreeView(this.model) {
+    focusable = true;
+  }
+
+  @override
+  bool onKey(String key) {
+    switch (key) {
+      case KeyCode.UP:
+        moveUp();
+        return true;
+      case KeyCode.DOWN:
+        moveDown();
+        return true;
+      case KeyCode.LEFT:
+        collapseNode();
+        return true;
+      case KeyCode.RIGHT:
+        expandNode();
+        return true;
+    }
+    return false;
+  }
+
+  void moveUp() {
     if (cursor > 0) {
       cursor--;
-      if (cursor < position) {
-        position--;
+      if (cursor < scrollOffset) {
+        scrollOffset--;
       }
-      render();
-    }
-
-  }
-
-  void move_left() {
-    var node = _model.skip(cursor).first;
-    if (node._parent._parent != null) {
-      node._parent.opened = false;
-      cursor = _model.indexOf(node._parent);
-      position = min(cursor, position);
-      render();
     }
   }
 
-  void move_down() {
-    var len = _model.length-1;
+  void moveDown() {
+    var len = model.length - 1;
     if (len > cursor) {
       cursor++;
-      if (cursor >= (position+height)) {
-        position++;
+      if (cursor >= (scrollOffset + height)) {
+        scrollOffset++;
       }
-      render();
     }
   }
 
-  void move_right() {
-    var node = _model.skip(cursor).first;
-    if (!node.leaf) {
-      node.opened = true;
-      move_down();
+  void collapseNode() {
+    var nodes = model.toList();
+    if (cursor < nodes.length) {
+      var node = nodes[cursor];
+      if (node._parent?._parent != null) {
+        node._parent!.opened = false;
+        cursor = model.indexOf(node._parent!) ?? 0;
+        scrollOffset = min(cursor, scrollOffset);
+      }
     }
   }
 
-  void render() {
-    var iter = _model.skip(position).iterator;
+  void expandNode() {
+    var nodes = model.toList();
+    if (cursor < nodes.length) {
+      var node = nodes[cursor];
+      if (!node.leaf) {
+        node.opened = true;
+        moveDown();
+      }
+    }
+  }
+
+  /// Override to customize how each node is rendered as a string.
+  String renderNode(TreeNode node);
+
+  @override
+  void update() {
+    text = [];
+    var nodes = model.skip(scrollOffset).take(height).toList();
+
     for (var i = 0; i < height; i++) {
-      Terminal.moveCursor(row: row+i, column: col);
-      Terminal.eraseLine();
-      if (iter.moveNext()) {
-        String line = render_row(iter.current);
-        if (i == (cursor-position)) Terminal.setBackgroundColor(2);
-        Terminal.write(line.substring(0, min(line.length, width)));
-        if (i == (cursor-position)) Terminal.resetBackgroundColor();
+      if (i < nodes.length) {
+        var node = nodes[i];
+        var line = renderNode(node);
+        if (line.length > width) {
+          line = line.substring(0, width);
+        }
+
+        var isSelected = (i + scrollOffset) == cursor;
+        var t = Text(line.padRight(width))
+          ..position = Position(0, i)
+          ..color = isSelected ? cursorColor : normalColor;
+        text.add(t);
       }
     }
   }
-
-  String render_row(TreeNode node);
-
 }

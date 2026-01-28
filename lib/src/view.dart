@@ -227,8 +227,12 @@ class SplitView extends View {
   void resize_children() {
     if (children.isEmpty) return;
 
-    final totalRatio = ratios?.fold(0, (sum, r) => sum + r)
-                       ?? children.length;
+    // Calculate total ratio including implicit 1s for children without explicit ratios
+    int totalRatio = 0;
+    for (int i = 0; i < children.length; i++) {
+      totalRatio += (ratios != null && i < ratios!.length) ? ratios![i] : 1;
+    }
+
     final availableSize = horizontal ? width : height;
 
     int offset = 0;

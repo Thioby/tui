@@ -1,21 +1,21 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:tui/tui.dart';
 import 'package:path/path.dart';
 
 class FileNode extends TreeNode {
   FileNode(this.entity) {
     filename = basename(entity.path);
-    if (entity is File)
-      leaf = true;
+    if (entity is File) leaf = true;
   }
 
-  String filename;
+  late String filename;
   FileSystemEntity entity;
 
   bool _opened = false;
+  @override
   bool get opened => _opened;
-  void set opened(bool value) {
+  @override
+  set opened(bool value) {
     if (value && !leaf) {
       loadChildren();
       _opened = true;
@@ -25,71 +25,65 @@ class FileNode extends TreeNode {
   }
 
   void loadChildren() {
-    (entity as Directory).listSync().forEach((e) => add(new FileNode(e)));
+    try {
+      (entity as Directory).listSync().forEach((e) => add(FileNode(e)));
+    } catch (e) {
+      // Permission denied or other errors - ignore
+    }
   }
-
 }
 
 class FileTree extends TreeModel {
-
   FileTree() {
-    var path = Platform.environment['HOME'];
-    var dir = new Directory(path);
-    dir.listSync().forEach((e) => root.add(new FileNode(e)));
-  }
-
-}
-
-class FileBrowser extends TreeView {
-
-  FileBrowser(model): super(model);
-
-  String render_row(FileNode node) {
-    return ' '*node.depth + node.filename;
-  }
-
-}
-
-main() {
-  var tree = new FileTree();
-
-  print(ANSI.ERASE_SCREEN);
-
-  /*
-  var pos = 0;
-  var file = new File('head.txt');
-  List<String> text = file.readAsLinesSync();
-  *
-   */
-
-  var treeView = new FileBrowser(tree)
-                      ..col = 3
-                      ..row = 3
-                      ..height = 10
-                      ..width = 40;
-  treeView.render();
-
-  stdin.echoMode = false;
-  stdin.lineMode = false;
-  stdin.transform(ASCII.decoder).listen((String key) {
-    switch (key) {
-      case KeyCode.UP:
-        treeView.move_up();
-        break;
-      case KeyCode.LEFT:
-        treeView.move_left();
-        break;
-      case KeyCode.DOWN:
-        treeView.move_down();
-        break;
-      case KeyCode.RIGHT:
-        treeView.move_right();
-        break;
-      case "q":
-        stdin.echoMode = true;
-        stdin.lineMode = true;
-        exit(0);
-        break;
+    var path = Platform.environment['HOME']!;
+    var dir = Directory(path);
+    try {
+      dir.listSync().forEach((e) => root.add(FileNode(e)));
+    } catch (e) {
+      // Handle permission errors
     }
+  }
+}
+
+class FileBrowserView extends TreeView {
+  FileBrowserView(super.model);
+
+  @override
+  String renderNode(covariant FileNode node) {
+    var prefix = node.leaf ? '  ' : (node.opened ? '▼ ' : '▶ ');
+    return '  ' * node.depth + prefix + node.filename;
+  }
+}
+
+class FileBrowserWindow extends Window {
+  late FileBrowserView browser;
+
+  FileBrowserWindow() {
+    var tree = FileTree();
+    browser = FileBrowserView(tree);
+    children = [browser];
+  }
+
+  @override
+  bool onKey(String key) {
+    if (key == 'q') {
+      stop();
+      return true;
+    }
+    return false;
+  }
+}
+
+void main() {
+  print("File Browser");
+  print("─────────────────────────────────────");
+  print("↑/↓       = navigate");
+  print("←         = collapse folder");
+  print("→         = expand folder");
+  print("q         = quit");
+  print("─────────────────────────────────────");
+  print("Starting in 2 seconds...");
+  Future.delayed(Duration(seconds: 2), () {
+    FileBrowserWindow().start();
   });
 }
