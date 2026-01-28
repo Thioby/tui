@@ -103,10 +103,16 @@ class Window extends View with FocusManager {
   bool onKey(String key) => false;
 
   /// Stops the application and restores the terminal.
+  ///
+  /// Uses scheduleMicrotask to defer cleanup until after
+  /// the current event handler completes.
   void stop() {
     _loop.stop();
-    _input.cancel();
-    _restoreTerminal();
+    // Defer cleanup to avoid conflicts with stdin event handling
+    scheduleMicrotask(() {
+      _input.cancel();
+      _restoreTerminal();
+    });
   }
 
   void _restoreTerminal() {
