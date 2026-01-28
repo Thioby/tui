@@ -4,6 +4,7 @@ import "dart:async";
 class WidgetsDemo extends Window {
   late Select<String> demoSelect;
   late Frame mainFrame;
+  late BigText introBanner;
   View? currentDemo;
 
   final demos = [
@@ -13,22 +14,30 @@ class WidgetsDemo extends Window {
     'Confirm - yes/no dialog',
     'Spinner - loading indicator',
     'Table - tabular data',
+    'BigText - ASCII art banners',
   ];
 
   WidgetsDemo() {
+    introBanner = BigText('TUI', font: BigTextFont.block)
+      ..gradient = Gradients.gemini;
+
     demoSelect = Select<String>(
       options: demos,
       header: 'Choose a demo:',
       onSelect: _showDemo,
     );
 
-    mainFrame = Frame(title: 'TUI Widgets Demo', color: '36')
-      ..children = [demoSelect];
+    mainFrame = Frame(title: 'Dart TUI Widgets', color: '36')
+      ..children = [
+        SplitView(horizontal: false, ratios: [1, 3])
+          ..children = [introBanner, demoSelect],
+      ];
 
     children = [mainFrame];
   }
 
   void _showDemo(String demo) {
+    _inDemo = true;
     switch (demo) {
       case 'Input - single line text':
         _showInputDemo();
@@ -42,6 +51,8 @@ class WidgetsDemo extends Window {
         _showSpinnerDemo();
       case 'Table - tabular data':
         _showTableDemo();
+      case 'BigText - ASCII art banners':
+        _showBigTextDemo();
     }
   }
 
@@ -155,10 +166,19 @@ class WidgetsDemo extends Window {
     focusFirst();
   }
 
+  void _showBigTextDemo() {
+    var frame = Frame(title: 'BigText Demo (ESC to back)', color: '33')
+      ..children = [_BigTextShowcase()];
+
+    mainFrame.children = [frame];
+  }
+
   void _backToMenu(String message) {
+    _inDemo = false;
     mainFrame.children = [
-      SplitView(horizontal: false, ratios: [1, 5])
+      SplitView(horizontal: false, ratios: [1, 1, 4])
         ..children = [
+          introBanner,
           CenteredText(message),
           demoSelect,
         ],
@@ -167,12 +187,22 @@ class WidgetsDemo extends Window {
     focusFirst();
   }
 
+  void _showMenu() {
+    mainFrame.children = [
+      SplitView(horizontal: false, ratios: [1, 3])
+        ..children = [introBanner, demoSelect],
+    ];
+    focusFirst();
+  }
+
+  bool _inDemo = false;
+
   @override
   bool onKey(String key) {
     if (key == KeyCode.ESCAPE) {
-      if (mainFrame.children.first != demoSelect) {
-        mainFrame.children = [demoSelect];
-        focusFirst();
+      if (_inDemo) {
+        _inDemo = false;
+        _showMenu();
         return true;
       } else {
         stop();
@@ -184,6 +214,58 @@ class WidgetsDemo extends Window {
       return true;
     }
     return super.onKey(key);
+  }
+}
+
+class _BigTextShowcase extends View {
+  @override
+  void update() {
+    text = [];
+    var y = 0;
+
+    // Block font with rainbow gradient
+    var block = BigText('DART', font: BigTextFont.block)
+      ..gradient = Gradients.rainbow;
+    block.size = Size(width, 5);
+    block.update();
+    for (var t in block.text) {
+      text.add(Text(t.text ?? '')
+        ..color = t.color
+        ..position = Position(t.x, y + t.y));
+    }
+    y += 6;
+
+    // Chunky font with fire gradient
+    var chunky = BigText('FIRE', font: BigTextFont.chunky)
+      ..gradient = Gradients.fire;
+    chunky.size = Size(width, 4);
+    chunky.update();
+    for (var t in chunky.text) {
+      text.add(Text(t.text ?? '')
+        ..color = t.color
+        ..position = Position(t.x, y + t.y));
+    }
+    y += 5;
+
+    // Slim font with ocean gradient
+    var slim = BigText('OCEAN', font: BigTextFont.slim)
+      ..gradient = Gradients.ocean;
+    slim.size = Size(width, 5);
+    slim.update();
+    for (var t in slim.text) {
+      text.add(Text(t.text ?? '')
+        ..color = t.color
+        ..position = Position(t.x, y + t.y));
+    }
+    y += 6;
+
+    // Info text
+    text.add(Text('Fonts: block, slim, chunky')
+      ..color = '8'
+      ..position = Position(0, y++));
+    text.add(Text('Gradients: rainbow, sunset, ocean, purple, cyan, fire, forest, gemini')
+      ..color = '8'
+      ..position = Position(0, y));
   }
 }
 
