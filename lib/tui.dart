@@ -28,6 +28,7 @@ part 'src/textarea.dart';
 part 'src/spinner.dart';
 part 'src/table.dart';
 part 'src/bigtext.dart';
+part 'src/animation.dart';
 
 class Size {
   int width;
