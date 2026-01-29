@@ -148,6 +148,44 @@ class BigText extends View {
     _text = _text.toUpperCase();
   }
 
+  /// Generate raw ASCII art lines for given text and font.
+  /// Useful for animations that need the raw line data.
+  static List<String> generateLines(String text, {BigTextFont font = BigTextFont.shadow, int letterSpacing = 1}) {
+    text = text.toUpperCase();
+    var fontData = _getFontDataFor(font);
+    var charHeight = fontData.height;
+    var lines = List.generate(charHeight, (_) => StringBuffer());
+
+    for (var i = 0; i < text.length; i++) {
+      var char = text[i];
+      var glyph = fontData.glyphs[char] ?? fontData.glyphs[' ']!;
+
+      for (var row = 0; row < charHeight; row++) {
+        if (row < glyph.length) {
+          lines[row].write(glyph[row]);
+        }
+        if (i < text.length - 1) {
+          lines[row].write(' ' * letterSpacing);
+        }
+      }
+    }
+
+    return lines.map((sb) => sb.toString()).toList();
+  }
+
+  static _FontData _getFontDataFor(BigTextFont font) {
+    switch (font) {
+      case BigTextFont.block:
+        return _blockFont;
+      case BigTextFont.slim:
+        return _slimFont;
+      case BigTextFont.chunky:
+        return _chunkyFont;
+      case BigTextFont.shadow:
+        return _shadowFont;
+    }
+  }
+
   @override
   void update() {
     text = [];

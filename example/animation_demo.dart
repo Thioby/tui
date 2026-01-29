@@ -244,20 +244,11 @@ class AnimationDemo extends Window {
     ));
   }
 
-  // BigText animation lines (simple ASCII art)
-  final _bigTextLines = [
-    '████████╗██╗   ██╗██╗',
-    '╚══██╔══╝██║   ██║██║',
-    '   ██║   ██║   ██║██║',
-    '   ██║   ██║   ██║██║',
-    '   ██║   ╚██████╔╝██║',
-    '   ╚═╝    ╚═════╝ ╚═╝',
-  ];
-
   void _runBigTextTypewriter() {
     statusText = 'BigText with TYPEWRITER reveal...';
+    final lines = BigText.generateLines('TUI', font: BigTextFont.shadow);
     controller.add(BigTextAnimation(
-      lines: _bigTextLines,
+      lines: lines,
       lineDelay: Duration(milliseconds: 150),
       defaultStyle: LineRevealConfig.typewriter,
       onUpdate: (rendered) {
@@ -271,8 +262,9 @@ class AnimationDemo extends Window {
 
   void _runBigTextGlitch() {
     statusText = 'BigText with GLITCH reveal...';
+    final lines = BigText.generateLines('GLITCH', font: BigTextFont.shadow);
     controller.add(BigTextAnimation(
-      lines: _bigTextLines,
+      lines: lines,
       lineDelay: Duration(milliseconds: 100),
       defaultStyle: LineRevealConfig.glitch,
       onUpdate: (rendered) {
@@ -286,15 +278,16 @@ class AnimationDemo extends Window {
 
   void _runBigTextMatrix() {
     statusText = 'BigText with MATRIX reveal...';
+    final lines = BigText.generateLines('MATRIX', font: BigTextFont.shadow);
     controller.add(BigTextAnimation(
-      lines: _bigTextLines,
+      lines: lines,
       lineDelay: Duration(milliseconds: 120),
       defaultStyle: LineRevealConfig.matrix,
       onUpdate: (rendered) {
         currentEffect = rendered.join('\n');
       },
       onComplete: () {
-        currentEffect = _bigTextLines.map((l) => '${Colors.brightGreen}$l${Colors.reset}').join('\n');
+        currentEffect = lines.map((l) => '${Colors.brightGreen}$l${Colors.reset}').join('\n');
         statusText = 'Done! Press any key to continue.';
       },
     ));
@@ -302,8 +295,9 @@ class AnimationDemo extends Window {
 
   void _runBigTextMixed() {
     statusText = 'BigText with MIXED styles per line...';
+    final lines = BigText.generateLines('MIXED', font: BigTextFont.shadow);
     controller.add(BigTextAnimation(
-      lines: _bigTextLines,
+      lines: lines,
       lineDelay: Duration(milliseconds: 200),
       lineStyles: [
         LineRevealConfig.glitch,      // Line 1: glitch
