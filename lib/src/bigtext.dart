@@ -2,14 +2,17 @@ part of tui;
 
 /// Font style for BigText widget.
 enum BigTextFont {
-  /// Block letters using █ characters
+  /// Block letters using █ characters (5 lines high)
   block,
 
-  /// Slim letters using ╔═╗ box drawing
+  /// Slim letters using ╔═╗ box drawing (5 lines high)
   slim,
 
-  /// Chunky 3D-style letters
+  /// Chunky half-block style ▄▀ (4 lines high)
   chunky,
+
+  /// FIGlet-style 3D shadow font ███╗ (6 lines high)
+  shadow,
 }
 
 /// RGB color for gradients.
@@ -33,12 +36,12 @@ class RGB {
 /// Predefined gradients.
 class Gradients {
   static const rainbow = [
-    RGB(255, 0, 0),    // Red
-    RGB(255, 127, 0),  // Orange
-    RGB(255, 255, 0),  // Yellow
-    RGB(0, 255, 0),    // Green
-    RGB(0, 0, 255),    // Blue
-    RGB(139, 0, 255),  // Violet
+    RGB(255, 0, 0),
+    RGB(255, 127, 0),
+    RGB(255, 255, 0),
+    RGB(0, 255, 0),
+    RGB(0, 0, 255),
+    RGB(139, 0, 255),
   ];
 
   static const sunset = [
@@ -78,23 +81,26 @@ class Gradients {
   ];
 
   static const gemini = [
-    RGB(100, 130, 255),  // Blue
-    RGB(150, 120, 200),  // Purple
-    RGB(200, 150, 180),  // Pink
+    RGB(100, 130, 255),
+    RGB(150, 120, 200),
+    RGB(200, 150, 180),
+  ];
+
+  static const matrix = [
+    RGB(0, 80, 0),
+    RGB(0, 180, 0),
+    RGB(100, 255, 100),
   ];
 }
 
-/// Displays text as large ASCII art letters.
+/// Displays text as large ASCII art letters with optional subtitle and border.
 ///
 /// Example:
 /// ```dart
-/// var banner = BigText('HELLO')
-///   ..font = BigTextFont.block
-///   ..color = '36';
-///
-/// // With gradient:
-/// var gradientBanner = BigText('HELLO')
-///   ..gradient = Gradients.rainbow;
+/// var banner = BigText('HELLO', font: BigTextFont.shadow)
+///   ..subtitle = 'Welcome to the app'
+///   ..gradient = Gradients.gemini
+///   ..showBorder = true;
 /// ```
 class BigText extends View {
   String _text;
@@ -117,7 +123,28 @@ class BigText extends View {
   /// Horizontal spacing between letters.
   int letterSpacing = 1;
 
-  BigText(this._text, {this.font = BigTextFont.block, this.gradient}) {
+  /// Optional subtitle displayed below the main text.
+  String? subtitle;
+
+  /// Color for subtitle (ANSI code).
+  String subtitleColor = '8';
+
+  /// Whether to show a border around the banner.
+  bool showBorder = false;
+
+  /// Border color (ANSI code).
+  String borderColor = '36';
+
+  /// Whether to center the text horizontally.
+  bool centered = true;
+
+  BigText(this._text, {
+    this.font = BigTextFont.block,
+    this.gradient,
+    this.subtitle,
+    this.showBorder = false,
+    this.centered = true,
+  }) {
     _text = _text.toUpperCase();
   }
 
@@ -130,6 +157,7 @@ class BigText extends View {
     var charHeight = fontData.height;
     var lines = List.generate(charHeight, (_) => StringBuffer());
 
+    // Build the text lines
     for (var i = 0; i < _text.length; i++) {
       var char = _text[i];
       var glyph = fontData.glyphs[char] ?? fontData.glyphs[' ']!;
@@ -144,34 +172,146 @@ class BigText extends View {
       }
     }
 
-    for (var row = 0; row < charHeight && row < height; row++) {
+    var textWidth = lines.isNotEmpty ? lines[0].length : 0;
+    var totalHeight = charHeight;
+    if (subtitle != null) totalHeight += 2; // spacing + subtitle
+    if (showBorder) totalHeight += 2; // top + bottom border
+
+    var y = 0;
+    var contentWidth = showBorder ? width - 2 : width;
+    var xOffset = showBorder ? 1 : 0;
+
+    // Top border
+    if (showBorder) {
+      var borderWidth = max(textWidth + 4, (subtitle?.length ?? 0) + 6);
+      if (borderWidth > width) borderWidth = width;
+      var borderLine = '${BoxChars.doubleTL}${BoxChars.doubleH * (borderWidth - 2)}${BoxChars.doubleTR}';
+      var bx = centered ? (width - borderWidth) ~/ 2 : 0;
+      text.add(Text(borderLine)
+        ..color = borderColor
+        ..position = Position(bx, y++));
+    }
+
+    // Main text lines
+    for (var row = 0; row < charHeight && y < height - (showBorder ? 1 : 0); row++) {
       var line = lines[row].toString();
-      if (line.length > width) {
-        line = line.substring(0, width);
+      if (line.length > contentWidth) {
+        line = line.substring(0, contentWidth);
+      }
+
+      var x = xOffset;
+      if (centered) {
+        x = (width - line.length) ~/ 2;
+        if (x < xOffset) x = xOffset;
+      }
+
+      if (showBorder) {
+        // Add side borders
+        var borderWidth = max(textWidth + 4, (subtitle?.length ?? 0) + 6);
+        if (borderWidth > width) borderWidth = width;
+        var bx = centered ? (width - borderWidth) ~/ 2 : 0;
+        text.add(Text(BoxChars.doubleV)
+          ..color = borderColor
+          ..position = Position(bx, y));
+        text.add(Text(BoxChars.doubleV)
+          ..color = borderColor
+          ..position = Position(bx + borderWidth - 1, y));
       }
 
       if (gradient != null && gradient!.isNotEmpty) {
-        // Render with gradient - each character gets its own color
-        _renderGradientLine(line, row);
+        _renderGradientLine(line, x, y);
       } else {
         text.add(Text(line)
           ..color = color
-          ..position = Position(0, row));
+          ..position = Position(x, y));
       }
+      y++;
+    }
+
+    // Subtitle
+    if (subtitle != null && y < height - (showBorder ? 1 : 0)) {
+      y++; // spacing
+
+      if (showBorder) {
+        var borderWidth = max(textWidth + 4, subtitle!.length + 6);
+        if (borderWidth > width) borderWidth = width;
+        var bx = centered ? (width - borderWidth) ~/ 2 : 0;
+
+        // Subtitle box inside main border
+        var subBoxWidth = subtitle!.length + 4;
+        var subX = centered ? (width - subBoxWidth) ~/ 2 : bx + 2;
+
+        text.add(Text(BoxChars.doubleV)
+          ..color = borderColor
+          ..position = Position(bx, y));
+        text.add(Text('${BoxChars.lightTL}${BoxChars.lightH * (subBoxWidth - 2)}${BoxChars.lightTR}')
+          ..color = subtitleColor
+          ..position = Position(subX, y));
+        text.add(Text(BoxChars.doubleV)
+          ..color = borderColor
+          ..position = Position(bx + borderWidth - 1, y));
+        y++;
+
+        text.add(Text(BoxChars.doubleV)
+          ..color = borderColor
+          ..position = Position(bx, y));
+        text.add(Text(BoxChars.lightV)
+          ..color = subtitleColor
+          ..position = Position(subX, y));
+        text.add(Text(' ${subtitle!} ')
+          ..color = subtitleColor
+          ..position = Position(subX + 1, y));
+        text.add(Text(BoxChars.lightV)
+          ..color = subtitleColor
+          ..position = Position(subX + subBoxWidth - 1, y));
+        text.add(Text(BoxChars.doubleV)
+          ..color = borderColor
+          ..position = Position(bx + borderWidth - 1, y));
+        y++;
+
+        text.add(Text(BoxChars.doubleV)
+          ..color = borderColor
+          ..position = Position(bx, y));
+        text.add(Text('${BoxChars.lightBL}${BoxChars.lightH * (subBoxWidth - 2)}${BoxChars.lightBR}')
+          ..color = subtitleColor
+          ..position = Position(subX, y));
+        text.add(Text(BoxChars.doubleV)
+          ..color = borderColor
+          ..position = Position(bx + borderWidth - 1, y));
+        y++;
+      } else {
+        // Simple subtitle without border
+        var subX = centered ? (width - subtitle!.length) ~/ 2 : 0;
+        text.add(Text(subtitle!)
+          ..color = subtitleColor
+          ..position = Position(subX, y));
+        y++;
+      }
+    }
+
+    // Bottom border
+    if (showBorder && y < height) {
+      var borderWidth = max(textWidth + 4, (subtitle?.length ?? 0) + 6);
+      if (borderWidth > width) borderWidth = width;
+      var borderLine = '${BoxChars.doubleBL}${BoxChars.doubleH * (borderWidth - 2)}${BoxChars.doubleBR}';
+      var bx = centered ? (width - borderWidth) ~/ 2 : 0;
+      text.add(Text(borderLine)
+        ..color = borderColor
+        ..position = Position(bx, y));
     }
   }
 
-  void _renderGradientLine(String line, int row) {
+  void _renderGradientLine(String line, int startX, int row) {
     if (line.isEmpty) return;
 
-    for (var x = 0; x < line.length; x++) {
-      var char = line[x];
-      if (char == ' ') continue; // Skip spaces for performance
+    for (var i = 0; i < line.length; i++) {
+      var char = line[i];
+      if (char == ' ') continue;
 
-      var gradientColor = _getGradientColor(x, line.length);
+      var gradientColor = _getGradientColor(i, line.length);
       text.add(Text(char)
         ..color = gradientColor.toAnsi()
-        ..position = Position(x, row));
+        ..position = Position(startX + i, row));
     }
   }
 
@@ -203,6 +343,8 @@ class BigText extends View {
         return _slimFont;
       case BigTextFont.chunky:
         return _chunkyFont;
+      case BigTextFont.shadow:
+        return _shadowFont;
     }
   }
 }
@@ -214,653 +356,453 @@ class _FontData {
   _FontData(this.height, this.glyphs);
 }
 
-final _blockFont = _FontData(5, {
+// ═══════════════════════════════════════════════════════════════════════════
+// SHADOW FONT - FIGlet-style 3D (6 lines high)
+// ═══════════════════════════════════════════════════════════════════════════
+
+final _shadowFont = _FontData(6, {
   'A': [
-    '█████',
-    '█   █',
-    '█████',
-    '█   █',
-    '█   █',
+    ' █████╗ ',
+    '██╔══██╗',
+    '███████║',
+    '██╔══██║',
+    '██║  ██║',
+    '╚═╝  ╚═╝',
   ],
   'B': [
-    '████ ',
-    '█   █',
-    '████ ',
-    '█   █',
-    '████ ',
+    '██████╗ ',
+    '██╔══██╗',
+    '██████╔╝',
+    '██╔══██╗',
+    '██████╔╝',
+    '╚═════╝ ',
   ],
   'C': [
-    '█████',
-    '█    ',
-    '█    ',
-    '█    ',
-    '█████',
+    ' ██████╗',
+    '██╔════╝',
+    '██║     ',
+    '██║     ',
+    '╚██████╗',
+    ' ╚═════╝',
   ],
   'D': [
-    '████ ',
-    '█   █',
-    '█   █',
-    '█   █',
-    '████ ',
+    '██████╗ ',
+    '██╔══██╗',
+    '██║  ██║',
+    '██║  ██║',
+    '██████╔╝',
+    '╚═════╝ ',
   ],
   'E': [
-    '█████',
-    '█    ',
-    '████ ',
-    '█    ',
-    '█████',
+    '███████╗',
+    '██╔════╝',
+    '█████╗  ',
+    '██╔══╝  ',
+    '███████╗',
+    '╚══════╝',
   ],
   'F': [
-    '█████',
-    '█    ',
-    '████ ',
-    '█    ',
-    '█    ',
+    '███████╗',
+    '██╔════╝',
+    '█████╗  ',
+    '██╔══╝  ',
+    '██║     ',
+    '╚═╝     ',
   ],
   'G': [
-    '█████',
-    '█    ',
-    '█  ██',
-    '█   █',
-    '█████',
+    ' ██████╗ ',
+    '██╔════╝ ',
+    '██║  ███╗',
+    '██║   ██║',
+    '╚██████╔╝',
+    ' ╚═════╝ ',
   ],
   'H': [
-    '█   █',
-    '█   █',
-    '█████',
-    '█   █',
-    '█   █',
+    '██╗  ██╗',
+    '██║  ██║',
+    '███████║',
+    '██╔══██║',
+    '██║  ██║',
+    '╚═╝  ╚═╝',
   ],
   'I': [
-    '█████',
-    '  █  ',
-    '  █  ',
-    '  █  ',
-    '█████',
+    '██╗',
+    '██║',
+    '██║',
+    '██║',
+    '██║',
+    '╚═╝',
   ],
   'J': [
-    '█████',
-    '    █',
-    '    █',
-    '█   █',
-    '█████',
+    '     ██╗',
+    '     ██║',
+    '     ██║',
+    '██   ██║',
+    '╚█████╔╝',
+    ' ╚════╝ ',
   ],
   'K': [
-    '█   █',
-    '█  █ ',
-    '███  ',
-    '█  █ ',
-    '█   █',
+    '██╗  ██╗',
+    '██║ ██╔╝',
+    '█████╔╝ ',
+    '██╔═██╗ ',
+    '██║  ██╗',
+    '╚═╝  ╚═╝',
   ],
   'L': [
-    '█    ',
-    '█    ',
-    '█    ',
-    '█    ',
-    '█████',
+    '██╗     ',
+    '██║     ',
+    '██║     ',
+    '██║     ',
+    '███████╗',
+    '╚══════╝',
   ],
   'M': [
-    '█   █',
-    '██ ██',
-    '█ █ █',
-    '█   █',
-    '█   █',
+    '███╗   ███╗',
+    '████╗ ████║',
+    '██╔████╔██║',
+    '██║╚██╔╝██║',
+    '██║ ╚═╝ ██║',
+    '╚═╝     ╚═╝',
   ],
   'N': [
-    '█   █',
-    '██  █',
-    '█ █ █',
-    '█  ██',
-    '█   █',
+    '███╗   ██╗',
+    '████╗  ██║',
+    '██╔██╗ ██║',
+    '██║╚██╗██║',
+    '██║ ╚████║',
+    '╚═╝  ╚═══╝',
   ],
   'O': [
-    '█████',
-    '█   █',
-    '█   █',
-    '█   █',
-    '█████',
+    ' ██████╗ ',
+    '██╔═══██╗',
+    '██║   ██║',
+    '██║   ██║',
+    '╚██████╔╝',
+    ' ╚═════╝ ',
   ],
   'P': [
-    '█████',
-    '█   █',
-    '█████',
-    '█    ',
-    '█    ',
+    '██████╗ ',
+    '██╔══██╗',
+    '██████╔╝',
+    '██╔═══╝ ',
+    '██║     ',
+    '╚═╝     ',
   ],
   'Q': [
-    '█████',
-    '█   █',
-    '█   █',
-    '█  █ ',
-    '███ █',
+    ' ██████╗ ',
+    '██╔═══██╗',
+    '██║   ██║',
+    '██║▄▄ ██║',
+    '╚██████╔╝',
+    ' ╚══▀▀═╝ ',
   ],
   'R': [
-    '█████',
-    '█   █',
-    '█████',
-    '█  █ ',
-    '█   █',
+    '██████╗ ',
+    '██╔══██╗',
+    '██████╔╝',
+    '██╔══██╗',
+    '██║  ██║',
+    '╚═╝  ╚═╝',
   ],
   'S': [
-    '█████',
-    '█    ',
-    '█████',
-    '    █',
-    '█████',
+    '███████╗',
+    '██╔════╝',
+    '███████╗',
+    '╚════██║',
+    '███████║',
+    '╚══════╝',
   ],
   'T': [
-    '█████',
-    '  █  ',
-    '  █  ',
-    '  █  ',
-    '  █  ',
+    '████████╗',
+    '╚══██╔══╝',
+    '   ██║   ',
+    '   ██║   ',
+    '   ██║   ',
+    '   ╚═╝   ',
   ],
   'U': [
-    '█   █',
-    '█   █',
-    '█   █',
-    '█   █',
-    '█████',
+    '██╗   ██╗',
+    '██║   ██║',
+    '██║   ██║',
+    '██║   ██║',
+    '╚██████╔╝',
+    ' ╚═════╝ ',
   ],
   'V': [
-    '█   █',
-    '█   █',
-    '█   █',
-    ' █ █ ',
-    '  █  ',
+    '██╗   ██╗',
+    '██║   ██║',
+    '██║   ██║',
+    '╚██╗ ██╔╝',
+    ' ╚████╔╝ ',
+    '  ╚═══╝  ',
   ],
   'W': [
-    '█   █',
-    '█   █',
-    '█ █ █',
-    '██ ██',
-    '█   █',
+    '██╗    ██╗',
+    '██║    ██║',
+    '██║ █╗ ██║',
+    '██║███╗██║',
+    '╚███╔███╔╝',
+    ' ╚══╝╚══╝ ',
   ],
   'X': [
-    '█   █',
-    ' █ █ ',
-    '  █  ',
-    ' █ █ ',
-    '█   █',
+    '██╗  ██╗',
+    '╚██╗██╔╝',
+    ' ╚███╔╝ ',
+    ' ██╔██╗ ',
+    '██╔╝ ██╗',
+    '╚═╝  ╚═╝',
   ],
   'Y': [
-    '█   █',
-    ' █ █ ',
-    '  █  ',
-    '  █  ',
-    '  █  ',
+    '██╗   ██╗',
+    '╚██╗ ██╔╝',
+    ' ╚████╔╝ ',
+    '  ╚██╔╝  ',
+    '   ██║   ',
+    '   ╚═╝   ',
   ],
   'Z': [
-    '█████',
-    '   █ ',
-    '  █  ',
-    ' █   ',
-    '█████',
+    '███████╗',
+    '╚══███╔╝',
+    '  ███╔╝ ',
+    ' ███╔╝  ',
+    '███████╗',
+    '╚══════╝',
   ],
   '0': [
-    '█████',
-    '█   █',
-    '█   █',
-    '█   █',
-    '█████',
+    ' ██████╗ ',
+    '██╔═████╗',
+    '██║██╔██║',
+    '████╔╝██║',
+    '╚██████╔╝',
+    ' ╚═════╝ ',
   ],
   '1': [
-    '  █  ',
-    ' ██  ',
-    '  █  ',
-    '  █  ',
-    '█████',
+    ' ██╗',
+    '███║',
+    '╚██║',
+    ' ██║',
+    ' ██║',
+    ' ╚═╝',
   ],
   '2': [
-    '█████',
-    '    █',
-    '█████',
-    '█    ',
-    '█████',
+    '██████╗ ',
+    '╚════██╗',
+    ' █████╔╝',
+    '██╔═══╝ ',
+    '███████╗',
+    '╚══════╝',
   ],
   '3': [
-    '█████',
-    '    █',
-    '█████',
-    '    █',
-    '█████',
+    '██████╗ ',
+    '╚════██╗',
+    ' █████╔╝',
+    ' ╚═══██╗',
+    '██████╔╝',
+    '╚═════╝ ',
   ],
   '4': [
-    '█   █',
-    '█   █',
-    '█████',
-    '    █',
-    '    █',
+    '██╗  ██╗',
+    '██║  ██║',
+    '███████║',
+    '╚════██║',
+    '     ██║',
+    '     ╚═╝',
   ],
   '5': [
-    '█████',
-    '█    ',
-    '█████',
-    '    █',
-    '█████',
+    '███████╗',
+    '██╔════╝',
+    '███████╗',
+    '╚════██║',
+    '███████║',
+    '╚══════╝',
   ],
   '6': [
-    '█████',
-    '█    ',
-    '█████',
-    '█   █',
-    '█████',
+    ' ██████╗',
+    '██╔════╝',
+    '███████╗',
+    '██╔══██║',
+    '╚█████╔╝',
+    ' ╚════╝ ',
   ],
   '7': [
-    '█████',
-    '    █',
-    '   █ ',
-    '  █  ',
-    '  █  ',
+    '███████╗',
+    '╚════██║',
+    '    ██╔╝',
+    '   ██╔╝ ',
+    '   ██║  ',
+    '   ╚═╝  ',
   ],
   '8': [
-    '█████',
-    '█   █',
-    '█████',
-    '█   █',
-    '█████',
+    ' █████╗ ',
+    '██╔══██╗',
+    '╚█████╔╝',
+    '██╔══██╗',
+    '╚█████╔╝',
+    ' ╚════╝ ',
   ],
   '9': [
-    '█████',
-    '█   █',
-    '█████',
-    '    █',
-    '█████',
+    ' █████╗ ',
+    '██╔══██╗',
+    '╚██████║',
+    ' ╚═══██║',
+    ' █████╔╝',
+    ' ╚════╝ ',
   ],
   ' ': [
-    '     ',
-    '     ',
-    '     ',
-    '     ',
-    '     ',
+    '   ',
+    '   ',
+    '   ',
+    '   ',
+    '   ',
+    '   ',
   ],
   '!': [
-    '  █  ',
-    '  █  ',
-    '  █  ',
-    '     ',
-    '  █  ',
+    '██╗',
+    '██║',
+    '██║',
+    '╚═╝',
+    '██╗',
+    '╚═╝',
   ],
   '.': [
-    '     ',
-    '     ',
-    '     ',
-    '     ',
-    '  █  ',
+    '   ',
+    '   ',
+    '   ',
+    '   ',
+    '██╗',
+    '╚═╝',
   ],
   '-': [
-    '     ',
-    '     ',
-    '█████',
-    '     ',
-    '     ',
+    '      ',
+    '      ',
+    '█████╗',
+    '╚════╝',
+    '      ',
+    '      ',
   ],
-  '_': [
-    '     ',
-    '     ',
-    '     ',
-    '     ',
-    '█████',
+  ':': [
+    '   ',
+    '██╗',
+    '╚═╝',
+    '██╗',
+    '╚═╝',
+    '   ',
   ],
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BLOCK FONT (5 lines high)
+// ═══════════════════════════════════════════════════════════════════════════
+
+final _blockFont = _FontData(5, {
+  'A': ['█████', '█   █', '█████', '█   █', '█   █'],
+  'B': ['████ ', '█   █', '████ ', '█   █', '████ '],
+  'C': ['█████', '█    ', '█    ', '█    ', '█████'],
+  'D': ['████ ', '█   █', '█   █', '█   █', '████ '],
+  'E': ['█████', '█    ', '████ ', '█    ', '█████'],
+  'F': ['█████', '█    ', '████ ', '█    ', '█    '],
+  'G': ['█████', '█    ', '█  ██', '█   █', '█████'],
+  'H': ['█   █', '█   █', '█████', '█   █', '█   █'],
+  'I': ['█████', '  █  ', '  █  ', '  █  ', '█████'],
+  'J': ['█████', '    █', '    █', '█   █', '█████'],
+  'K': ['█   █', '█  █ ', '███  ', '█  █ ', '█   █'],
+  'L': ['█    ', '█    ', '█    ', '█    ', '█████'],
+  'M': ['█   █', '██ ██', '█ █ █', '█   █', '█   █'],
+  'N': ['█   █', '██  █', '█ █ █', '█  ██', '█   █'],
+  'O': ['█████', '█   █', '█   █', '█   █', '█████'],
+  'P': ['█████', '█   █', '█████', '█    ', '█    '],
+  'Q': ['█████', '█   █', '█   █', '█  █ ', '███ █'],
+  'R': ['█████', '█   █', '█████', '█  █ ', '█   █'],
+  'S': ['█████', '█    ', '█████', '    █', '█████'],
+  'T': ['█████', '  █  ', '  █  ', '  █  ', '  █  '],
+  'U': ['█   █', '█   █', '█   █', '█   █', '█████'],
+  'V': ['█   █', '█   █', '█   █', ' █ █ ', '  █  '],
+  'W': ['█   █', '█   █', '█ █ █', '██ ██', '█   █'],
+  'X': ['█   █', ' █ █ ', '  █  ', ' █ █ ', '█   █'],
+  'Y': ['█   █', ' █ █ ', '  █  ', '  █  ', '  █  '],
+  'Z': ['█████', '   █ ', '  █  ', ' █   ', '█████'],
+  '0': ['█████', '█   █', '█   █', '█   █', '█████'],
+  '1': ['  █  ', ' ██  ', '  █  ', '  █  ', '█████'],
+  '2': ['█████', '    █', '█████', '█    ', '█████'],
+  '3': ['█████', '    █', '█████', '    █', '█████'],
+  '4': ['█   █', '█   █', '█████', '    █', '    █'],
+  '5': ['█████', '█    ', '█████', '    █', '█████'],
+  '6': ['█████', '█    ', '█████', '█   █', '█████'],
+  '7': ['█████', '    █', '   █ ', '  █  ', '  █  '],
+  '8': ['█████', '█   █', '█████', '█   █', '█████'],
+  '9': ['█████', '█   █', '█████', '    █', '█████'],
+  ' ': ['     ', '     ', '     ', '     ', '     '],
+  '!': ['  █  ', '  █  ', '  █  ', '     ', '  █  '],
+  '.': ['     ', '     ', '     ', '     ', '  █  '],
+  '-': ['     ', '     ', '█████', '     ', '     '],
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SLIM FONT (5 lines high)
+// ═══════════════════════════════════════════════════════════════════════════
 
 final _slimFont = _FontData(5, {
-  'A': [
-    '╔═╗',
-    '╠═╣',
-    '║ ║',
-  ].followedBy(['║ ║', '╩ ╩']).toList(),
-  'B': [
-    '╔═╗',
-    '╠═╣',
-    '╠═╣',
-    '║ ║',
-    '╚═╝',
-  ],
-  'C': [
-    '╔══',
-    '║  ',
-    '║  ',
-    '║  ',
-    '╚══',
-  ],
-  'D': [
-    '╔═╗',
-    '║ ║',
-    '║ ║',
-    '║ ║',
-    '╚═╝',
-  ],
-  'E': [
-    '╔══',
-    '╠═ ',
-    '║  ',
-    '║  ',
-    '╚══',
-  ],
-  'F': [
-    '╔══',
-    '╠═ ',
-    '║  ',
-    '║  ',
-    '╩  ',
-  ],
-  'G': [
-    '╔══',
-    '║  ',
-    '║ ╗',
-    '║ ║',
-    '╚═╝',
-  ],
-  'H': [
-    '║ ║',
-    '╠═╣',
-    '║ ║',
-    '║ ║',
-    '╩ ╩',
-  ],
-  'I': [
-    '═╦═',
-    ' ║ ',
-    ' ║ ',
-    ' ║ ',
-    '═╩═',
-  ],
-  'J': [
-    '══╗',
-    '  ║',
-    '  ║',
-    '╔═╣',
-    '╚═╝',
-  ],
-  'K': [
-    '║ ╱',
-    '╠╣ ',
-    '║ ╲',
-    '║ ║',
-    '╩ ╩',
-  ],
-  'L': [
-    '║  ',
-    '║  ',
-    '║  ',
-    '║  ',
-    '╚══',
-  ],
-  'M': [
-    '╔╗╔╗',
-    '║╚╝║',
-    '║  ║',
-    '║  ║',
-    '╩  ╩',
-  ],
-  'N': [
-    '╔╗ ║',
-    '║╚╗║',
-    '║ ╚╣',
-    '║  ║',
-    '╩  ╩',
-  ],
-  'O': [
-    '╔═╗',
-    '║ ║',
-    '║ ║',
-    '║ ║',
-    '╚═╝',
-  ],
-  'P': [
-    '╔═╗',
-    '╠═╝',
-    '║  ',
-    '║  ',
-    '╩  ',
-  ],
-  'Q': [
-    '╔═╗',
-    '║ ║',
-    '║ ║',
-    '║╚╗',
-    '╚═╩',
-  ],
-  'R': [
-    '╔═╗',
-    '╠═╣',
-    '║╚╗',
-    '║ ║',
-    '╩ ╩',
-  ],
-  'S': [
-    '╔══',
-    '╚═╗',
-    '  ║',
-    '╔═╝',
-    '╚══',
-  ],
-  'T': [
-    '═╦═',
-    ' ║ ',
-    ' ║ ',
-    ' ║ ',
-    ' ╩ ',
-  ],
-  'U': [
-    '║ ║',
-    '║ ║',
-    '║ ║',
-    '║ ║',
-    '╚═╝',
-  ],
-  'V': [
-    '║ ║',
-    '║ ║',
-    '║ ║',
-    '╚╦╝',
-    ' ╩ ',
-  ],
-  'W': [
-    '║  ║',
-    '║  ║',
-    '║╔╗║',
-    '╠╝╚╣',
-    '╩  ╩',
-  ],
-  'X': [
-    '╲ ╱',
-    ' ╳ ',
-    '╱ ╲',
-    '║ ║',
-    '╩ ╩',
-  ],
-  'Y': [
-    '╲ ╱',
-    ' ║ ',
-    ' ║ ',
-    ' ║ ',
-    ' ╩ ',
-  ],
-  'Z': [
-    '══╗',
-    ' ╔╝',
-    '╔╝ ',
-    '║  ',
-    '╚══',
-  ],
-  ' ': [
-    '   ',
-    '   ',
-    '   ',
-    '   ',
-    '   ',
-  ],
+  'A': ['╔═╗', '╠═╣', '║ ║', '║ ║', '╩ ╩'],
+  'B': ['╔═╗', '╠═╣', '╠═╣', '║ ║', '╚═╝'],
+  'C': ['╔══', '║  ', '║  ', '║  ', '╚══'],
+  'D': ['╔═╗', '║ ║', '║ ║', '║ ║', '╚═╝'],
+  'E': ['╔══', '╠═ ', '║  ', '║  ', '╚══'],
+  'F': ['╔══', '╠═ ', '║  ', '║  ', '╩  '],
+  'G': ['╔══', '║  ', '║ ╗', '║ ║', '╚═╝'],
+  'H': ['║ ║', '╠═╣', '║ ║', '║ ║', '╩ ╩'],
+  'I': ['═╦═', ' ║ ', ' ║ ', ' ║ ', '═╩═'],
+  'J': ['══╗', '  ║', '  ║', '╔═╣', '╚═╝'],
+  'K': ['║ ╱', '╠╣ ', '║ ╲', '║ ║', '╩ ╩'],
+  'L': ['║  ', '║  ', '║  ', '║  ', '╚══'],
+  'M': ['╔╗╔╗', '║╚╝║', '║  ║', '║  ║', '╩  ╩'],
+  'N': ['╔╗ ║', '║╚╗║', '║ ╚╣', '║  ║', '╩  ╩'],
+  'O': ['╔═╗', '║ ║', '║ ║', '║ ║', '╚═╝'],
+  'P': ['╔═╗', '╠═╝', '║  ', '║  ', '╩  '],
+  'Q': ['╔═╗', '║ ║', '║ ║', '║╚╗', '╚═╩'],
+  'R': ['╔═╗', '╠═╣', '║╚╗', '║ ║', '╩ ╩'],
+  'S': ['╔══', '╚═╗', '  ║', '╔═╝', '╚══'],
+  'T': ['═╦═', ' ║ ', ' ║ ', ' ║ ', ' ╩ '],
+  'U': ['║ ║', '║ ║', '║ ║', '║ ║', '╚═╝'],
+  'V': ['║ ║', '║ ║', '║ ║', '╚╦╝', ' ╩ '],
+  'W': ['║  ║', '║  ║', '║╔╗║', '╠╝╚╣', '╩  ╩'],
+  'X': ['╲ ╱', ' ╳ ', '╱ ╲', '║ ║', '╩ ╩'],
+  'Y': ['╲ ╱', ' ║ ', ' ║ ', ' ║ ', ' ╩ '],
+  'Z': ['══╗', ' ╔╝', '╔╝ ', '║  ', '╚══'],
+  ' ': ['   ', '   ', '   ', '   ', '   '],
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CHUNKY FONT (4 lines high)
+// ═══════════════════════════════════════════════════════════════════════════
+
 final _chunkyFont = _FontData(4, {
-  'A': [
-    '▄▀▀▄',
-    '█▄▄█',
-    '█  █',
-    '▀  ▀',
-  ],
-  'B': [
-    '█▀▀▄',
-    '█▄▄▀',
-    '█  █',
-    '▀▀▀ ',
-  ],
-  'C': [
-    '▄▀▀▀',
-    '█   ',
-    '█   ',
-    '▀▀▀▀',
-  ],
-  'D': [
-    '█▀▀▄',
-    '█  █',
-    '█  █',
-    '▀▀▀ ',
-  ],
-  'E': [
-    '█▀▀▀',
-    '█▄▄ ',
-    '█   ',
-    '▀▀▀▀',
-  ],
-  'F': [
-    '█▀▀▀',
-    '█▄▄ ',
-    '█   ',
-    '▀   ',
-  ],
-  'G': [
-    '▄▀▀▀',
-    '█ ▀█',
-    '█  █',
-    '▀▀▀▀',
-  ],
-  'H': [
-    '█  █',
-    '█▄▄█',
-    '█  █',
-    '▀  ▀',
-  ],
-  'I': [
-    '▀█▀',
-    ' █ ',
-    ' █ ',
-    '▀▀▀',
-  ],
-  'J': [
-    '  ▀█',
-    '   █',
-    '█  █',
-    '▀▀▀ ',
-  ],
-  'K': [
-    '█ ▄▀',
-    '██  ',
-    '█ ▀▄',
-    '▀  ▀',
-  ],
-  'L': [
-    '█   ',
-    '█   ',
-    '█   ',
-    '▀▀▀▀',
-  ],
-  'M': [
-    '█▄▄█',
-    '█▀▀█',
-    '█  █',
-    '▀  ▀',
-  ],
-  'N': [
-    '█▄ █',
-    '█ ▀█',
-    '█  █',
-    '▀  ▀',
-  ],
-  'O': [
-    '▄▀▀▄',
-    '█  █',
-    '█  █',
-    '▀▀▀▀',
-  ],
-  'P': [
-    '█▀▀▄',
-    '█▄▄▀',
-    '█   ',
-    '▀   ',
-  ],
-  'Q': [
-    '▄▀▀▄',
-    '█  █',
-    '█ ▀█',
-    '▀▀▀▀',
-  ],
-  'R': [
-    '█▀▀▄',
-    '█▄▄▀',
-    '█ ▀▄',
-    '▀  ▀',
-  ],
-  'S': [
-    '▄▀▀▀',
-    '▀▀▀▄',
-    '▄  █',
-    '▀▀▀ ',
-  ],
-  'T': [
-    '▀█▀',
-    ' █ ',
-    ' █ ',
-    ' ▀ ',
-  ],
-  'U': [
-    '█  █',
-    '█  █',
-    '█  █',
-    '▀▀▀▀',
-  ],
-  'V': [
-    '█  █',
-    '█  █',
-    '▀▄▄▀',
-    ' ▀▀ ',
-  ],
-  'W': [
-    '█  █',
-    '█  █',
-    '█▄▄█',
-    '▀▀▀▀',
-  ],
-  'X': [
-    '▀▄▄▀',
-    ' ▀▀ ',
-    '▄▀▀▄',
-    '▀  ▀',
-  ],
-  'Y': [
-    '█  █',
-    '▀▄▄▀',
-    ' █▀ ',
-    ' ▀  ',
-  ],
-  'Z': [
-    '▀▀▀█',
-    ' ▄▀ ',
-    '▄▀  ',
-    '▀▀▀▀',
-  ],
-  ' ': [
-    '    ',
-    '    ',
-    '    ',
-    '    ',
-  ],
-  '!': [
-    ' █ ',
-    ' █ ',
-    '   ',
-    ' ▀ ',
-  ],
+  'A': ['▄▀▀▄', '█▄▄█', '█  █', '▀  ▀'],
+  'B': ['█▀▀▄', '█▄▄▀', '█  █', '▀▀▀ '],
+  'C': ['▄▀▀▀', '█   ', '█   ', '▀▀▀▀'],
+  'D': ['█▀▀▄', '█  █', '█  █', '▀▀▀ '],
+  'E': ['█▀▀▀', '█▄▄ ', '█   ', '▀▀▀▀'],
+  'F': ['█▀▀▀', '█▄▄ ', '█   ', '▀   '],
+  'G': ['▄▀▀▀', '█ ▀█', '█  █', '▀▀▀▀'],
+  'H': ['█  █', '█▄▄█', '█  █', '▀  ▀'],
+  'I': ['▀█▀', ' █ ', ' █ ', '▀▀▀'],
+  'J': ['  ▀█', '   █', '█  █', '▀▀▀ '],
+  'K': ['█ ▄▀', '██  ', '█ ▀▄', '▀  ▀'],
+  'L': ['█   ', '█   ', '█   ', '▀▀▀▀'],
+  'M': ['█▄▄█', '█▀▀█', '█  █', '▀  ▀'],
+  'N': ['█▄ █', '█ ▀█', '█  █', '▀  ▀'],
+  'O': ['▄▀▀▄', '█  █', '█  █', '▀▀▀▀'],
+  'P': ['█▀▀▄', '█▄▄▀', '█   ', '▀   '],
+  'Q': ['▄▀▀▄', '█  █', '█ ▀█', '▀▀▀▀'],
+  'R': ['█▀▀▄', '█▄▄▀', '█ ▀▄', '▀  ▀'],
+  'S': ['▄▀▀▀', '▀▀▀▄', '▄  █', '▀▀▀ '],
+  'T': ['▀█▀', ' █ ', ' █ ', ' ▀ '],
+  'U': ['█  █', '█  █', '█  █', '▀▀▀▀'],
+  'V': ['█  █', '█  █', '▀▄▄▀', ' ▀▀ '],
+  'W': ['█  █', '█  █', '█▄▄█', '▀▀▀▀'],
+  'X': ['▀▄▄▀', ' ▀▀ ', '▄▀▀▄', '▀  ▀'],
+  'Y': ['█  █', '▀▄▄▀', ' █▀ ', ' ▀  '],
+  'Z': ['▀▀▀█', ' ▄▀ ', '▄▀  ', '▀▀▀▀'],
+  ' ': ['    ', '    ', '    ', '    '],
+  '!': [' █ ', ' █ ', '   ', ' ▀ '],
 });
