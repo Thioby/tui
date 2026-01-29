@@ -118,9 +118,10 @@ class SplitView extends View {
 class Frame extends View {
   String? title;
   String color;
+  String? focusColor;
   int padding;
 
-  Frame({this.title, this.color = '36', this.padding = 1});
+  Frame({this.title, this.color = '36', this.focusColor, this.padding = 1});
 
   @override
   void update() {
@@ -130,6 +131,15 @@ class Frame extends View {
     }
 
     var innerWidth = width - 2;
+    var borderColor = focused && focusColor != null ? focusColor! : color;
+
+    // Use double-line border when focused
+    var h = focused && focusColor != null ? '═' : '─';
+    var v = focused && focusColor != null ? '║' : '│';
+    var tl = focused && focusColor != null ? '╔' : '┌';
+    var tr = focused && focusColor != null ? '╗' : '┐';
+    var bl = focused && focusColor != null ? '╚' : '└';
+    var br = focused && focusColor != null ? '╝' : '┘';
 
     // Top border with optional title
     String topBorder;
@@ -137,26 +147,26 @@ class Frame extends View {
       var titleText = ' $title ';
       var remaining = innerWidth - titleText.length - 1;
       if (remaining < 0) remaining = 0;
-      topBorder = '┌─$titleText${'─' * remaining}┐';
+      topBorder = '$tl$h$titleText${h * remaining}$tr';
     } else {
-      topBorder = '┌${'─' * innerWidth}┐';
+      topBorder = '$tl${h * innerWidth}$tr';
     }
 
-    text = [Text(topBorder)..color = color];
+    text = [Text(topBorder)..color = borderColor];
 
     // Side borders
     for (var i = 1; i < height - 1; i++) {
-      text.add(Text('│')
-        ..color = color
+      text.add(Text(v)
+        ..color = borderColor
         ..position = Position(0, i));
-      text.add(Text('│')
-        ..color = color
+      text.add(Text(v)
+        ..color = borderColor
         ..position = Position(width - 1, i));
     }
 
     // Bottom border
-    text.add(Text('└${'─' * innerWidth}┘')
-      ..color = color
+    text.add(Text('$bl${h * innerWidth}$br')
+      ..color = borderColor
       ..position = Position(0, height - 1));
   }
 
