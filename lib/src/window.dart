@@ -7,6 +7,12 @@ class Window extends View with FocusManager {
   late StreamSubscription<String> _input;
   Size? _lastSize;
 
+  /// Show FPS meter in top-right corner.
+  bool showFps = false;
+
+  /// Access to FPS statistics.
+  FpsMeter get fps => _loop.fps;
+
   @override
   View get focusRoot => this;
 
@@ -44,6 +50,18 @@ class Window extends View with FocusManager {
       var canvas = _screen.canvas();
       resize(canvas.size, canvas.position);
       render(canvas);
+
+      // Render FPS meter in top-right corner using direct cursor positioning
+      if (showFps) {
+        final fpsText = _loop.fps.compact;
+        // Strip ANSI for length calculation
+        final plainText = fpsText.replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '');
+        final fpsX = termSize.width - plainText.length - 1;
+        if (fpsX > 0) {
+          stdout.write('\x1B[1;${fpsX}H${Colors.dim}$fpsText${Colors.reset}');
+        }
+      }
+
       stdout.write(ANSI.CURSOR_HOME);
       stdout.write(_screen.toString());
     });

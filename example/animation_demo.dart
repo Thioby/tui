@@ -19,7 +19,8 @@ class AnimationDemo extends Window {
   ];
 
   AnimationDemo() {
-    controller = AnimationController()..fps = 30;
+    controller = AnimationController()..fps = 60;
+    showFps = true;  // Enable FPS meter
   }
 
   @override
@@ -30,7 +31,7 @@ class AnimationDemo extends Window {
 
   void _showMenu() {
     currentEffect = '';
-    statusText = 'Select animation with UP/DOWN, ENTER to run, Q to quit';
+    statusText = 'UP/DOWN = select, ENTER = run, F = toggle FPS, Q = quit';
   }
 
   void _runDemo(int index) {
@@ -188,6 +189,11 @@ class AnimationDemo extends Window {
       return true;
     }
 
+    if (key == 'f' || key == 'F') {
+      showFps = !showFps;
+      return true;
+    }
+
     if (key == KeyCode.UP) {
       demoIndex = (demoIndex - 1) % demos.length;
       if (demoIndex < 0) demoIndex = demos.length - 1;
@@ -254,6 +260,7 @@ void main() {
   print('${BoxChars.lightH * 40}');
   print('UP/DOWN = select animation');
   print('ENTER   = run animation');
+  print('F       = toggle FPS meter');
   print('Q/ESC   = quit');
   print('${BoxChars.lightH * 40}');
   print('Starting in 1 second...');
