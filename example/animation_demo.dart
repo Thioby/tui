@@ -16,6 +16,10 @@ class AnimationDemo extends Window {
     'Reveal Fade',
     'Shimmer',
     'Blink',
+    'BigText Typewriter',
+    'BigText Glitch',
+    'BigText Matrix',
+    'BigText Mixed',
     'Matrix Rain',
     'Particle Burst',
     'Countdown',
@@ -60,6 +64,14 @@ class AnimationDemo extends Window {
         _runShimmer();
       case 'Blink':
         _runBlink();
+      case 'BigText Typewriter':
+        _runBigTextTypewriter();
+      case 'BigText Glitch':
+        _runBigTextGlitch();
+      case 'BigText Matrix':
+        _runBigTextMatrix();
+      case 'BigText Mixed':
+        _runBigTextMixed();
       case 'Matrix Rain':
         _runMatrixRain();
       case 'Particle Burst':
@@ -228,6 +240,89 @@ class AnimationDemo extends Window {
         currentEffect = visible
           ? '${Colors.brightGreen}█${Colors.reset} Cursor visible'
           : '  Cursor hidden';
+      },
+    ));
+  }
+
+  // BigText animation lines (simple ASCII art)
+  final _bigTextLines = [
+    '████████╗██╗   ██╗██╗',
+    '╚══██╔══╝██║   ██║██║',
+    '   ██║   ██║   ██║██║',
+    '   ██║   ██║   ██║██║',
+    '   ██║   ╚██████╔╝██║',
+    '   ╚═╝    ╚═════╝ ╚═╝',
+  ];
+
+  void _runBigTextTypewriter() {
+    statusText = 'BigText with TYPEWRITER reveal...';
+    controller.add(BigTextAnimation(
+      lines: _bigTextLines,
+      lineDelay: Duration(milliseconds: 150),
+      defaultStyle: LineRevealConfig.typewriter,
+      onUpdate: (rendered) {
+        currentEffect = rendered.map((l) => '${Colors.cyan}$l${Colors.reset}').join('\n');
+      },
+      onComplete: () {
+        statusText = 'Done! Press any key to continue.';
+      },
+    ));
+  }
+
+  void _runBigTextGlitch() {
+    statusText = 'BigText with GLITCH reveal...';
+    controller.add(BigTextAnimation(
+      lines: _bigTextLines,
+      lineDelay: Duration(milliseconds: 100),
+      defaultStyle: LineRevealConfig.glitch,
+      onUpdate: (rendered) {
+        currentEffect = rendered.map((l) => '${Colors.brightRed}$l${Colors.reset}').join('\n');
+      },
+      onComplete: () {
+        statusText = 'Done! Press any key to continue.';
+      },
+    ));
+  }
+
+  void _runBigTextMatrix() {
+    statusText = 'BigText with MATRIX reveal...';
+    controller.add(BigTextAnimation(
+      lines: _bigTextLines,
+      lineDelay: Duration(milliseconds: 120),
+      defaultStyle: LineRevealConfig.matrix,
+      onUpdate: (rendered) {
+        currentEffect = rendered.join('\n');
+      },
+      onComplete: () {
+        currentEffect = _bigTextLines.map((l) => '${Colors.brightGreen}$l${Colors.reset}').join('\n');
+        statusText = 'Done! Press any key to continue.';
+      },
+    ));
+  }
+
+  void _runBigTextMixed() {
+    statusText = 'BigText with MIXED styles per line...';
+    controller.add(BigTextAnimation(
+      lines: _bigTextLines,
+      lineDelay: Duration(milliseconds: 200),
+      lineStyles: [
+        LineRevealConfig.glitch,      // Line 1: glitch
+        LineRevealConfig.matrix,      // Line 2: matrix
+        LineRevealConfig.typewriter,  // Line 3: typewriter
+        LineRevealConfig.fade,        // Line 4: fade
+        LineRevealConfig.glitch,      // Line 5: glitch
+        LineRevealConfig.matrix,      // Line 6: matrix
+      ],
+      onUpdate: (rendered) {
+        var buf = StringBuffer();
+        var colors = [Colors.red, Colors.green, Colors.cyan, Colors.yellow, Colors.magenta, Colors.brightGreen];
+        for (var i = 0; i < rendered.length; i++) {
+          buf.write('${colors[i % colors.length]}${rendered[i]}${Colors.reset}\n');
+        }
+        currentEffect = buf.toString().trimRight();
+      },
+      onComplete: () {
+        statusText = 'Done! Press any key to continue.';
       },
     ));
   }

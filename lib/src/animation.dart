@@ -928,3 +928,311 @@ class BlinkAnimation extends Animation {
     }
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BIGTEXT ANIMATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Style for revealing each line in BigTextAnimation.
+enum LineRevealStyle {
+  /// Instant reveal - line appears immediately.
+  instant,
+
+  /// Typewriter - characters appear left to right.
+  typewriter,
+
+  /// Glitch - random characters that resolve to final text.
+  glitch,
+
+  /// Matrix - matrix rain characters that resolve.
+  matrix,
+
+  /// Fade - line fades in (dim to bright).
+  fade,
+
+  /// Slide - line slides in from the side.
+  slide,
+}
+
+/// Configuration for a single line's reveal animation.
+class LineRevealConfig {
+  final LineRevealStyle style;
+  final Duration duration;
+  final double Function(double) easing;
+
+  const LineRevealConfig({
+    this.style = LineRevealStyle.typewriter,
+    this.duration = const Duration(milliseconds: 300),
+    this.easing = Easing.easeOut,
+  });
+
+  static const instant = LineRevealConfig(
+    style: LineRevealStyle.instant,
+    duration: Duration.zero,
+  );
+
+  static const typewriter = LineRevealConfig(
+    style: LineRevealStyle.typewriter,
+    duration: Duration(milliseconds: 400),
+  );
+
+  static const glitch = LineRevealConfig(
+    style: LineRevealStyle.glitch,
+    duration: Duration(milliseconds: 500),
+  );
+
+  static const matrix = LineRevealConfig(
+    style: LineRevealStyle.matrix,
+    duration: Duration(milliseconds: 600),
+  );
+
+  static const fade = LineRevealConfig(
+    style: LineRevealStyle.fade,
+    duration: Duration(milliseconds: 300),
+  );
+}
+
+/// Animates BigText line by line with different reveal styles per line.
+class BigTextAnimation extends Animation {
+  final List<String> lines;
+  final void Function(List<String> renderedLines) onUpdate;
+
+  /// Delay between starting each line's animation.
+  final Duration lineDelay;
+
+  /// Reveal style for each line. If shorter than lines, last style repeats.
+  final List<LineRevealConfig> lineStyles;
+
+  /// Default style if lineStyles is empty.
+  final LineRevealConfig defaultStyle;
+
+  final Random _random = Random();
+  static const _glitchChars = r'!@#$%^&*()_+-=[]{}|;:,.<>?/\~`░▒▓█▀▄';
+  static const _matrixChars = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄ0123456789';
+
+  List<String> _currentLines = [];
+  int _lastLineIndex = -1;
+
+  BigTextAnimation({
+    required this.lines,
+    required this.onUpdate,
+    this.lineDelay = const Duration(milliseconds: 100),
+    this.lineStyles = const [],
+    this.defaultStyle = const LineRevealConfig(),
+    super.easing,
+    super.repeatMode,
+    super.repeatCount,
+    super.onComplete,
+  }) : super(
+          duration: Duration(
+            milliseconds: lines.length * lineDelay.inMilliseconds +
+                (lineStyles.isNotEmpty
+                    ? lineStyles.last.duration.inMilliseconds
+                    : const LineRevealConfig().duration.inMilliseconds),
+          ),
+        ) {
+    _currentLines = List.filled(lines.length, '');
+  }
+
+  LineRevealConfig _getStyleForLine(int index) {
+    if (lineStyles.isEmpty) return defaultStyle;
+    if (index < lineStyles.length) return lineStyles[index];
+    return lineStyles.last;
+  }
+
+  @override
+  void update() {
+    var p = progress;
+    var elapsed = p * duration.inMilliseconds;
+
+    for (var i = 0; i < lines.length; i++) {
+      var lineStartTime = i * lineDelay.inMilliseconds;
+      var style = _getStyleForLine(i);
+      var lineDuration = style.duration.inMilliseconds;
+
+      if (elapsed < lineStartTime) {
+        // Line hasn't started yet
+        _currentLines[i] = '';
+      } else if (lineDuration == 0 || elapsed >= lineStartTime + lineDuration) {
+        // Line is complete
+        _currentLines[i] = lines[i];
+      } else {
+        // Line is animating
+        var lineProgress = (elapsed - lineStartTime) / lineDuration;
+        lineProgress = style.easing(lineProgress.clamp(0.0, 1.0));
+        _currentLines[i] = _renderLine(lines[i], lineProgress, style.style);
+      }
+    }
+
+    onUpdate(List.from(_currentLines));
+  }
+
+  String _renderLine(String line, double progress, LineRevealStyle style) {
+    if (line.isEmpty) return '';
+
+    switch (style) {
+      case LineRevealStyle.instant:
+        return line;
+
+      case LineRevealStyle.typewriter:
+        var visibleChars = (line.length * progress).round();
+        return line.substring(0, visibleChars).padRight(line.length);
+
+      case LineRevealStyle.glitch:
+        var buf = StringBuffer();
+        var resolveThreshold = progress;
+        for (var i = 0; i < line.length; i++) {
+          var charProgress = i / line.length;
+          if (charProgress < resolveThreshold - 0.1) {
+            // Resolved
+            buf.write(line[i]);
+          } else if (charProgress < resolveThreshold + 0.2) {
+            // Glitching - mix of correct and random
+            if (_random.nextDouble() < progress * 0.7) {
+              buf.write(line[i]);
+            } else {
+              buf.write(_glitchChars[_random.nextInt(_glitchChars.length)]);
+            }
+          } else {
+            // Not yet revealed
+            buf.write(' ');
+          }
+        }
+        return buf.toString();
+
+      case LineRevealStyle.matrix:
+        var buf = StringBuffer();
+        var resolveThreshold = progress;
+        for (var i = 0; i < line.length; i++) {
+          var charProgress = i / line.length;
+          if (charProgress < resolveThreshold - 0.15) {
+            // Resolved
+            buf.write(line[i]);
+          } else if (charProgress < resolveThreshold + 0.3) {
+            // Matrix effect - cycling through characters
+            if (_random.nextDouble() < progress * 0.6) {
+              buf.write(line[i]);
+            } else {
+              var matrixChar = _matrixChars[_random.nextInt(_matrixChars.length)];
+              buf.write('${Colors.green}$matrixChar${Colors.reset}');
+            }
+          } else {
+            // Not yet revealed - dim matrix chars
+            if (_random.nextDouble() < 0.3) {
+              var matrixChar = _matrixChars[_random.nextInt(_matrixChars.length)];
+              buf.write('${Colors.dim}$matrixChar${Colors.reset}');
+            } else {
+              buf.write(' ');
+            }
+          }
+        }
+        return buf.toString();
+
+      case LineRevealStyle.fade:
+        // Simulate fade with dim/normal/bright
+        if (progress < 0.33) {
+          return '${Colors.dim}$line${Colors.reset}';
+        } else if (progress < 0.66) {
+          return line;
+        } else {
+          return '${Colors.bold}$line${Colors.reset}';
+        }
+
+      case LineRevealStyle.slide:
+        // Slide in from right
+        var offset = ((1 - progress) * line.length).round();
+        var visible = line.length - offset;
+        if (visible <= 0) return ' ' * line.length;
+        return '${' ' * offset}${line.substring(0, visible)}';
+    }
+  }
+}
+
+/// Animated wrapper for BigText that plays reveal animation on start.
+class AnimatedBigText extends View {
+  final BigText _bigText;
+  final AnimationController _controller = AnimationController()..fps = 60;
+  final Duration lineDelay;
+  final List<LineRevealConfig> lineStyles;
+  final LineRevealConfig defaultStyle;
+  final void Function()? onComplete;
+
+  List<String> _animatedLines = [];
+  bool _animationComplete = false;
+
+  AnimatedBigText(
+    String text, {
+    BigTextFont font = BigTextFont.shadow,
+    List<RGB>? gradient,
+    String? subtitle,
+    bool showBorder = false,
+    this.lineDelay = const Duration(milliseconds: 80),
+    this.lineStyles = const [],
+    this.defaultStyle = const LineRevealConfig(),
+    this.onComplete,
+  }) : _bigText = BigText(text, font: font, gradient: gradient, subtitle: subtitle, showBorder: showBorder);
+
+  /// Start the reveal animation.
+  void startAnimation() {
+    _animationComplete = false;
+    _animatedLines = [];
+
+    // Get the rendered lines from BigText
+    _bigText.resize(size, position);
+    _bigText.update();
+
+    // Extract line strings from BigText's text elements
+    var lines = <String>[];
+    for (var t in _bigText.text) {
+      if (t.text != null) lines.add(t.text!);
+    }
+
+    if (lines.isEmpty) return;
+
+    _controller.add(BigTextAnimation(
+      lines: lines,
+      lineDelay: lineDelay,
+      lineStyles: lineStyles,
+      defaultStyle: defaultStyle,
+      onUpdate: (rendered) {
+        _animatedLines = rendered;
+      },
+      onComplete: () {
+        _animationComplete = true;
+        onComplete?.call();
+      },
+    ));
+  }
+
+  /// Skip animation and show final state.
+  void skipAnimation() {
+    _controller.clear();
+    _animationComplete = true;
+    _animatedLines = [];
+  }
+
+  @override
+  void resize(Size size, Position offset) {
+    super.resize(size, offset);
+    _bigText.resize(size, offset);
+  }
+
+  @override
+  void update() {
+    if (_animationComplete || _animatedLines.isEmpty) {
+      // Show final BigText
+      _bigText.update();
+      text = _bigText.text;
+    } else {
+      // Show animated lines
+      text = [];
+      for (var i = 0; i < _animatedLines.length; i++) {
+        text.add(Text(_animatedLines[i])..position = Position(0, i));
+      }
+    }
+  }
+
+  void dispose() {
+    _controller.clear();
+  }
+}

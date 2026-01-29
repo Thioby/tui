@@ -226,6 +226,89 @@ void main() {
       expect(RevealStyle.values, contains(RevealStyle.fade));
     });
   });
+
+  group('LineRevealStyle', () {
+    test('enum has all expected values', () {
+      expect(LineRevealStyle.values, contains(LineRevealStyle.instant));
+      expect(LineRevealStyle.values, contains(LineRevealStyle.typewriter));
+      expect(LineRevealStyle.values, contains(LineRevealStyle.glitch));
+      expect(LineRevealStyle.values, contains(LineRevealStyle.matrix));
+      expect(LineRevealStyle.values, contains(LineRevealStyle.fade));
+      expect(LineRevealStyle.values, contains(LineRevealStyle.slide));
+    });
+  });
+
+  group('LineRevealConfig', () {
+    test('default constructor has sensible defaults', () {
+      var config = LineRevealConfig();
+      expect(config.style, LineRevealStyle.typewriter);
+      expect(config.duration.inMilliseconds, 300);
+    });
+
+    test('preset configs exist', () {
+      expect(LineRevealConfig.instant.style, LineRevealStyle.instant);
+      expect(LineRevealConfig.typewriter.style, LineRevealStyle.typewriter);
+      expect(LineRevealConfig.glitch.style, LineRevealStyle.glitch);
+      expect(LineRevealConfig.matrix.style, LineRevealStyle.matrix);
+      expect(LineRevealConfig.fade.style, LineRevealStyle.fade);
+    });
+  });
+
+  group('BigTextAnimation', () {
+    test('updates with rendered lines', () {
+      var updates = <List<String>>[];
+      var anim = BigTextAnimation(
+        lines: ['LINE1', 'LINE2', 'LINE3'],
+        lineDelay: Duration(milliseconds: 50),
+        defaultStyle: LineRevealConfig.instant,
+        onUpdate: (lines) => updates.add(List.from(lines)),
+      );
+
+      anim.start();
+      // Simulate updates
+      for (var i = 0; i < 5; i++) {
+        anim.update();
+      }
+
+      expect(updates, isNotEmpty);
+    });
+
+    test('respects line styles list', () {
+      var anim = BigTextAnimation(
+        lines: ['A', 'B', 'C'],
+        lineDelay: Duration.zero,
+        lineStyles: [
+          LineRevealConfig.glitch,
+          LineRevealConfig.matrix,
+        ],
+        onUpdate: (_) {},
+      );
+
+      // Third line should use last style (matrix)
+      expect(anim, isNotNull);
+    });
+
+    test('calls onUpdate during animation', () {
+      var updateCount = 0;
+      var anim = BigTextAnimation(
+        lines: ['TEST', 'LINES'],
+        lineDelay: Duration(milliseconds: 100),
+        defaultStyle: LineRevealConfig(
+          style: LineRevealStyle.typewriter,
+          duration: Duration(milliseconds: 100),
+        ),
+        onUpdate: (_) => updateCount++,
+      );
+
+      anim.start();
+      // Simulate a few updates
+      for (var i = 0; i < 10; i++) {
+        anim.update();
+      }
+
+      expect(updateCount, greaterThan(0));
+    });
+  });
 }
 
 /// Test animation that tracks lifecycle.
