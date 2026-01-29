@@ -29,7 +29,7 @@ class Window extends View with FocusManager {
   }
 
   void _listenInput() {
-    _in = stdin.transform(ascii.decoder).listen(_onInput);
+    _in = stdin.transform(utf8.decoder).listen(_onInput);
   }
 
   void _startLoop() {
