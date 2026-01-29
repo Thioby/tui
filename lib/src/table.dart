@@ -235,33 +235,33 @@ class Table<T> extends View {
         );
       case TableBorder.ascii:
         return _BorderChars(
-          tl: '+', h: '-', tr: '+', v: '|',
-          ml: '+', mr: '+', bl: '+', br: '+',
-          tm: '+', mm: '+', bm: '+',
+          tl: BoxChars.asciiCorner, h: BoxChars.asciiH, tr: BoxChars.asciiCorner, v: BoxChars.asciiV,
+          ml: BoxChars.asciiCorner, mr: BoxChars.asciiCorner, bl: BoxChars.asciiCorner, br: BoxChars.asciiCorner,
+          tm: BoxChars.asciiCorner, mm: BoxChars.asciiCorner, bm: BoxChars.asciiCorner,
         );
       case TableBorder.light:
         return _BorderChars(
-          tl: '┌', h: '─', tr: '┐', v: '│',
-          ml: '├', mr: '┤', bl: '└', br: '┘',
-          tm: '┬', mm: '┼', bm: '┴',
+          tl: BoxChars.lightTL, h: BoxChars.lightH, tr: BoxChars.lightTR, v: BoxChars.lightV,
+          ml: BoxChars.lightTeeR, mr: BoxChars.lightTeeL, bl: BoxChars.lightBL, br: BoxChars.lightBR,
+          tm: BoxChars.lightTeeD, mm: BoxChars.lightCross, bm: BoxChars.lightTeeU,
         );
       case TableBorder.heavy:
         return _BorderChars(
-          tl: '┏', h: '━', tr: '┓', v: '┃',
-          ml: '┣', mr: '┫', bl: '┗', br: '┛',
-          tm: '┳', mm: '╋', bm: '┻',
+          tl: BoxChars.heavyTL, h: BoxChars.heavyH, tr: BoxChars.heavyTR, v: BoxChars.heavyV,
+          ml: BoxChars.heavyTeeR, mr: BoxChars.heavyTeeL, bl: BoxChars.heavyBL, br: BoxChars.heavyBR,
+          tm: BoxChars.heavyTeeD, mm: BoxChars.heavyCross, bm: BoxChars.heavyTeeU,
         );
       case TableBorder.double:
         return _BorderChars(
-          tl: '╔', h: '═', tr: '╗', v: '║',
-          ml: '╠', mr: '╣', bl: '╚', br: '╝',
-          tm: '╦', mm: '╬', bm: '╩',
+          tl: BoxChars.doubleTL, h: BoxChars.doubleH, tr: BoxChars.doubleTR, v: BoxChars.doubleV,
+          ml: BoxChars.doubleTeeR, mr: BoxChars.doubleTeeL, bl: BoxChars.doubleBL, br: BoxChars.doubleBR,
+          tm: BoxChars.doubleTeeD, mm: BoxChars.doubleCross, bm: BoxChars.doubleTeeU,
         );
       case TableBorder.rounded:
         return _BorderChars(
-          tl: '╭', h: '─', tr: '╮', v: '│',
-          ml: '├', mr: '┤', bl: '╰', br: '╯',
-          tm: '┬', mm: '┼', bm: '┴',
+          tl: BoxChars.roundedTL, h: BoxChars.lightH, tr: BoxChars.roundedTR, v: BoxChars.lightV,
+          ml: BoxChars.lightTeeR, mr: BoxChars.lightTeeL, bl: BoxChars.roundedBL, br: BoxChars.roundedBR,
+          tm: BoxChars.lightTeeD, mm: BoxChars.lightCross, bm: BoxChars.lightTeeU,
         );
     }
   }

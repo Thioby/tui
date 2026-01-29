@@ -134,12 +134,12 @@ class Frame extends View {
     var borderColor = focused && focusColor != null ? focusColor! : color;
 
     // Use double-line border when focused
-    var h = focused && focusColor != null ? '═' : '─';
-    var v = focused && focusColor != null ? '║' : '│';
-    var tl = focused && focusColor != null ? '╔' : '┌';
-    var tr = focused && focusColor != null ? '╗' : '┐';
-    var bl = focused && focusColor != null ? '╚' : '└';
-    var br = focused && focusColor != null ? '╝' : '┘';
+    var h = focused && focusColor != null ? BoxChars.doubleH : BoxChars.lightH;
+    var v = focused && focusColor != null ? BoxChars.doubleV : BoxChars.lightV;
+    var tl = focused && focusColor != null ? BoxChars.doubleTL : BoxChars.lightTL;
+    var tr = focused && focusColor != null ? BoxChars.doubleTR : BoxChars.lightTR;
+    var bl = focused && focusColor != null ? BoxChars.doubleBL : BoxChars.lightBL;
+    var br = focused && focusColor != null ? BoxChars.doubleBR : BoxChars.lightBR;
 
     // Top border with optional title
     String topBorder;
@@ -196,11 +196,11 @@ class ProgressBar extends View {
 
   String color = "2"; // green
   String emptyColor = "8";
-  String filledChar = "█";
-  String emptyChar = "░";
+  String filledChar = BoxChars.progressFull;
+  String emptyChar = BoxChars.progressEmpty;
   String? label;
 
-  static const List<String> _partialBlocks = [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"];
+  static const List<String> _partialBlocks = [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", BoxChars.progressFull];
 
   @override
   void update() {
