@@ -121,6 +121,12 @@ abstract class Animation {
     final elapsed = _stopwatch!.elapsedMilliseconds;
     final totalDuration = duration.inMilliseconds;
 
+    // Guard against zero duration - complete immediately
+    if (totalDuration <= 0) {
+      _complete();
+      return easing(1.0);
+    }
+
     // Calculate raw progress including iterations
     var totalElapsed = elapsed;
     var iterationProgress = (totalElapsed % totalDuration) / totalDuration;

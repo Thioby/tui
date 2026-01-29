@@ -51,7 +51,10 @@ class Window extends View with FocusManager {
       resize(canvas.size, canvas.position);
       render(canvas);
 
-      // Render FPS meter in top-right corner using direct cursor positioning
+      stdout.write(ANSI.CURSOR_HOME);
+      stdout.write(_screen.toString());
+
+      // Render FPS meter in top-right corner AFTER screen (overlay)
       if (showFps) {
         final fpsText = _loop.fps.compact;
         // Strip ANSI for length calculation
@@ -61,9 +64,6 @@ class Window extends View with FocusManager {
           stdout.write('\x1B[1;${fpsX}H${Colors.dim}$fpsText${Colors.reset}');
         }
       }
-
-      stdout.write(ANSI.CURSOR_HOME);
-      stdout.write(_screen.toString());
     });
   }
 
