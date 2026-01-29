@@ -10,7 +10,12 @@ class AnimationDemo extends Window {
   final demos = [
     'Typewriter',
     'Glitch',
-    'Pulse',
+    'Pulse (loop)',
+    'Pulse (pingPong)',
+    'Reveal Lines',
+    'Reveal Fade',
+    'Shimmer',
+    'Blink',
     'Matrix Rain',
     'Particle Burst',
     'Countdown',
@@ -43,8 +48,18 @@ class AnimationDemo extends Window {
         _runTypewriter();
       case 'Glitch':
         _runGlitch();
-      case 'Pulse':
-        _runPulse();
+      case 'Pulse (loop)':
+        _runPulseLoop();
+      case 'Pulse (pingPong)':
+        _runPulsePingPong();
+      case 'Reveal Lines':
+        _runRevealLines();
+      case 'Reveal Fade':
+        _runRevealFade();
+      case 'Shimmer':
+        _runShimmer();
+      case 'Blink':
+        _runBlink();
       case 'Matrix Rain':
         _runMatrixRain();
       case 'Particle Burst':
@@ -90,18 +105,129 @@ class AnimationDemo extends Window {
     ));
   }
 
-  void _runPulse() {
-    statusText = 'Pulse animation (3 pulses)...';
+  void _runPulseLoop() {
+    statusText = 'Pulse LOOP (runs forever, press any key to stop)...';
     currentEffect = '>>> ALERT <<<';
-    controller.add(PulseAnimation(
-      pulses: 5,
-      onUpdate: (bright) {
-        // We'll indicate brightness in the effect string
-        currentEffect = bright ? '${Colors.brightRed}>>> ALERT <<<${Colors.reset}' : '${Colors.dim}>>> ALERT <<<${Colors.reset}';
+    controller.add(ValueAnimation(
+      from: 0,
+      to: 1,
+      duration: Duration(milliseconds: 500),
+      repeatMode: RepeatMode.loop,
+      onUpdate: (value) {
+        var bright = value > 0.5;
+        currentEffect = bright
+          ? '${Colors.brightRed}>>> ALERT <<<${Colors.reset}'
+          : '${Colors.dim}>>> ALERT <<<${Colors.reset}';
+      },
+    ));
+  }
+
+  void _runPulsePingPong() {
+    statusText = 'Pulse PING-PONG (3 cycles)...';
+    currentEffect = '>>> ALERT <<<';
+    controller.add(ValueAnimation(
+      from: 0,
+      to: 1,
+      duration: Duration(milliseconds: 400),
+      repeatMode: RepeatMode.pingPong,
+      repeatCount: 3,
+      easing: Easing.easeInOut,
+      onUpdate: (value) {
+        // Smooth brightness transition
+        var r = (255 * value).round();
+        var g = (50 * (1 - value)).round();
+        currentEffect = '${Colors.fgRgb(r, g, 0)}>>> ALERT <<<${Colors.reset}';
       },
       onComplete: () {
         currentEffect = '>>> ALERT <<<';
         statusText = 'Done! Press any key to continue.';
+      },
+    ));
+  }
+
+  final _revealLines = [
+    '╔═══════════════════════════════╗',
+    '║   DART TUI ANIMATION SYSTEM   ║',
+    '║                               ║',
+    '║   Reveal animation demo       ║',
+    '║   Line by line effect         ║',
+    '╚═══════════════════════════════╝',
+  ];
+
+  void _runRevealLines() {
+    statusText = 'Reveal lines (top to bottom)...';
+    currentEffect = '';
+    controller.add(RevealAnimation(
+      lines: _revealLines,
+      style: RevealStyle.linesDown,
+      duration: Duration(milliseconds: 1500),
+      easing: Easing.easeOut,
+      onUpdate: (visible, _) {
+        currentEffect = visible.map((l) => '${Colors.cyan}$l${Colors.reset}').join('\n');
+      },
+      onComplete: () {
+        statusText = 'Done! Press any key to continue.';
+      },
+    ));
+  }
+
+  void _runRevealFade() {
+    statusText = 'Reveal FADE (forward then reverse)...';
+    controller.add(RevealAnimation(
+      lines: _revealLines,
+      style: RevealStyle.fade,
+      duration: Duration(milliseconds: 1000),
+      repeatMode: RepeatMode.reverse,
+      onUpdate: (lines, opacity) {
+        // Simulate fade with dim/bright colors
+        var color = opacity < 0.3
+          ? Colors.dim
+          : opacity < 0.7
+            ? Colors.cyan
+            : Colors.brightCyan;
+        currentEffect = lines.map((l) => '$color$l${Colors.reset}').join('\n');
+      },
+      onComplete: () {
+        currentEffect = '';
+        statusText = 'Done! Press any key to continue.';
+      },
+    ));
+  }
+
+  void _runShimmer() {
+    statusText = 'Shimmer effect (infinite loop)...';
+    final text = '████████████████████████████████████████';
+    controller.add(ShimmerAnimation(
+      width: text.length,
+      duration: Duration(milliseconds: 1500),
+      repeatMode: RepeatMode.loop,
+      onUpdate: (pos) {
+        var buf = StringBuffer();
+        for (var i = 0; i < text.length; i++) {
+          var dist = (i - pos).abs();
+          if (dist < 3) {
+            buf.write('${Colors.brightWhite}█');
+          } else if (dist < 6) {
+            buf.write('${Colors.white}█');
+          } else {
+            buf.write('${Colors.dim}█');
+          }
+        }
+        buf.write(Colors.reset);
+        currentEffect = buf.toString();
+      },
+    ));
+  }
+
+  void _runBlink() {
+    statusText = 'Blink animation (cursor style, infinite)...';
+    controller.add(BlinkAnimation(
+      blinkRate: Duration(milliseconds: 500),
+      repeatMode: RepeatMode.loop,
+      onUpdate: (visible) {
+        currentEffect = visible
+          ? '${Colors.brightGreen}█${Colors.reset} Cursor visible'
+          : '  Cursor hidden';
       },
     ));
   }
@@ -258,6 +384,10 @@ class AnimationDemo extends Window {
 void main() {
   print('Animation System Demo');
   print('${BoxChars.lightH * 40}');
+  print('');
+  print('Repeat modes: once, reverse, loop, pingPong');
+  print('New: Reveal, Shimmer, Blink animations');
+  print('');
   print('UP/DOWN = select animation');
   print('ENTER   = run animation');
   print('F       = toggle FPS meter');

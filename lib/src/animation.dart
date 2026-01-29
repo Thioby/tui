@@ -40,29 +40,62 @@ abstract class Easing {
   }
 }
 
+/// How the animation should repeat.
+enum RepeatMode {
+  /// Play once and stop.
+  once,
+
+  /// Play forward, then reverse, then stop.
+  reverse,
+
+  /// Loop forever in one direction.
+  loop,
+
+  /// Loop forever, alternating forward and reverse.
+  pingPong,
+}
+
 /// Base class for all animations.
 abstract class Animation {
   final Duration duration;
   final double Function(double) easing;
   final void Function()? onComplete;
 
+  /// How the animation repeats.
+  final RepeatMode repeatMode;
+
+  /// Number of times to repeat (0 = use repeatMode, >0 = repeat N times then stop).
+  final int repeatCount;
+
   bool _running = false;
   bool _completed = false;
   Stopwatch? _stopwatch;
+  int _currentIteration = 0;
+  bool _reversed = false;
 
   bool get running => _running;
   bool get completed => _completed;
+
+  /// Current iteration (0-based).
+  int get currentIteration => _currentIteration;
+
+  /// Whether currently playing in reverse.
+  bool get reversed => _reversed;
 
   Animation({
     required this.duration,
     this.easing = Easing.linear,
     this.onComplete,
+    this.repeatMode = RepeatMode.once,
+    this.repeatCount = 0,
   });
 
   /// Start the animation.
   void start() {
     _running = true;
     _completed = false;
+    _currentIteration = 0;
+    _reversed = false;
     _stopwatch = Stopwatch()..start();
   }
 
@@ -76,20 +109,69 @@ abstract class Animation {
   void reset() {
     _running = false;
     _completed = false;
+    _currentIteration = 0;
+    _reversed = false;
     _stopwatch?.reset();
   }
 
-  /// Get current progress (0.0 to 1.0).
+  /// Get current progress (0.0 to 1.0), handling repeat modes.
   double get progress {
     if (_stopwatch == null || !_running) return 0;
-    var t = _stopwatch!.elapsedMilliseconds / duration.inMilliseconds;
-    if (t >= 1.0) {
-      t = 1.0;
+
+    final elapsed = _stopwatch!.elapsedMilliseconds;
+    final totalDuration = duration.inMilliseconds;
+
+    // Calculate raw progress including iterations
+    var totalElapsed = elapsed;
+    var iterationProgress = (totalElapsed % totalDuration) / totalDuration;
+    var iteration = totalElapsed ~/ totalDuration;
+
+    // Handle different repeat modes
+    switch (repeatMode) {
+      case RepeatMode.once:
+        if (iteration >= 1) {
+          _complete();
+          return easing(1.0);
+        }
+        return easing(iterationProgress);
+
+      case RepeatMode.reverse:
+        // Forward then reverse = 2 iterations total
+        if (iteration >= 2) {
+          _complete();
+          return easing(0.0);
+        }
+        _currentIteration = iteration;
+        _reversed = iteration == 1;
+        var t = _reversed ? 1.0 - iterationProgress : iterationProgress;
+        return easing(t);
+
+      case RepeatMode.loop:
+        if (repeatCount > 0 && iteration >= repeatCount) {
+          _complete();
+          return easing(1.0);
+        }
+        _currentIteration = iteration;
+        return easing(iterationProgress);
+
+      case RepeatMode.pingPong:
+        if (repeatCount > 0 && iteration >= repeatCount * 2) {
+          _complete();
+          return easing(0.0);
+        }
+        _currentIteration = iteration ~/ 2;
+        _reversed = iteration.isOdd;
+        var t = _reversed ? 1.0 - iterationProgress : iterationProgress;
+        return easing(t);
+    }
+  }
+
+  void _complete() {
+    if (!_completed) {
       _completed = true;
       _running = false;
       onComplete?.call();
     }
-    return easing(t);
   }
 
   /// Update the animation. Called each frame.
@@ -649,4 +731,194 @@ enum AnimationType {
   glitch,
   pulse,
   cascade,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REVEAL ANIMATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// How to reveal multi-line content.
+enum RevealStyle {
+  /// Reveal all lines at once, character by character.
+  characters,
+
+  /// Reveal line by line from top.
+  linesDown,
+
+  /// Reveal line by line from bottom.
+  linesUp,
+
+  /// Reveal from center outward.
+  centerOut,
+
+  /// Fade in (opacity simulation via brightness).
+  fade,
+}
+
+/// Reveals multi-line content progressively.
+class RevealAnimation extends Animation {
+  final List<String> lines;
+  final void Function(List<String> visibleLines, double opacity) onUpdate;
+  final RevealStyle style;
+
+  int _lastLineCount = -1;
+  double _lastOpacity = -1;
+
+  RevealAnimation({
+    required this.lines,
+    required this.onUpdate,
+    this.style = RevealStyle.linesDown,
+    Duration duration = const Duration(milliseconds: 500),
+    super.easing = Easing.easeOut,
+    super.repeatMode,
+    super.repeatCount,
+    super.onComplete,
+  }) : super(duration: duration);
+
+  @override
+  void update() {
+    var p = progress;
+
+    switch (style) {
+      case RevealStyle.characters:
+        // Reveal all characters across all lines
+        var totalChars = lines.fold<int>(0, (sum, line) => sum + line.length);
+        var visibleChars = (totalChars * p).round();
+        var result = <String>[];
+        var remaining = visibleChars;
+
+        for (var line in lines) {
+          if (remaining <= 0) {
+            result.add('');
+          } else if (remaining >= line.length) {
+            result.add(line);
+            remaining -= line.length;
+          } else {
+            result.add(line.substring(0, remaining));
+            remaining = 0;
+          }
+        }
+        onUpdate(result, 1.0);
+
+      case RevealStyle.linesDown:
+        var visibleCount = (lines.length * p).ceil();
+        if (visibleCount != _lastLineCount) {
+          _lastLineCount = visibleCount;
+          onUpdate(lines.take(visibleCount).toList(), 1.0);
+        }
+
+      case RevealStyle.linesUp:
+        var visibleCount = (lines.length * p).ceil();
+        if (visibleCount != _lastLineCount) {
+          _lastLineCount = visibleCount;
+          var startIdx = lines.length - visibleCount;
+          var visible = List<String>.generate(lines.length, (i) {
+            return i >= startIdx ? lines[i] : '';
+          });
+          onUpdate(visible, 1.0);
+        }
+
+      case RevealStyle.centerOut:
+        var visibleCount = (lines.length * p).ceil();
+        if (visibleCount != _lastLineCount) {
+          _lastLineCount = visibleCount;
+          var center = lines.length ~/ 2;
+          var halfVisible = (visibleCount / 2).ceil();
+          var visible = List<String>.generate(lines.length, (i) {
+            var distFromCenter = (i - center).abs();
+            return distFromCenter < halfVisible ? lines[i] : '';
+          });
+          onUpdate(visible, 1.0);
+        }
+
+      case RevealStyle.fade:
+        if (p != _lastOpacity) {
+          _lastOpacity = p;
+          onUpdate(lines, p);
+        }
+    }
+  }
+}
+
+/// Simple value animation with repeat support.
+class ValueAnimation extends Animation {
+  final double from;
+  final double to;
+  final void Function(double value) onUpdate;
+
+  double _lastValue = double.nan;
+
+  ValueAnimation({
+    this.from = 0.0,
+    this.to = 1.0,
+    required this.onUpdate,
+    Duration duration = const Duration(milliseconds: 300),
+    super.easing = Easing.easeInOut,
+    super.repeatMode,
+    super.repeatCount,
+    super.onComplete,
+  }) : super(duration: duration);
+
+  @override
+  void update() {
+    var p = progress;
+    var value = from + (to - from) * p;
+    if (value != _lastValue) {
+      _lastValue = value;
+      onUpdate(value);
+    }
+  }
+}
+
+/// Shimmer/scan line effect that moves across text.
+class ShimmerAnimation extends Animation {
+  final int width;
+  final void Function(int position) onUpdate;
+
+  int _lastPos = -1;
+
+  ShimmerAnimation({
+    required this.width,
+    required this.onUpdate,
+    Duration duration = const Duration(milliseconds: 1000),
+    super.repeatMode = RepeatMode.loop,
+    super.repeatCount,
+    super.onComplete,
+  }) : super(duration: duration);
+
+  @override
+  void update() {
+    var p = progress;
+    var pos = (width * p).round();
+    if (pos != _lastPos) {
+      _lastPos = pos;
+      onUpdate(pos);
+    }
+  }
+}
+
+/// Blink animation for cursors or alerts.
+class BlinkAnimation extends Animation {
+  final void Function(bool visible) onUpdate;
+  final Duration blinkRate;
+
+  bool _lastVisible = true;
+
+  BlinkAnimation({
+    required this.onUpdate,
+    this.blinkRate = const Duration(milliseconds: 500),
+    super.repeatMode = RepeatMode.loop,
+    super.repeatCount,
+    super.onComplete,
+  }) : super(duration: blinkRate);
+
+  @override
+  void update() {
+    var p = progress;
+    var visible = p < 0.5;
+    if (visible != _lastVisible) {
+      _lastVisible = visible;
+      onUpdate(visible);
+    }
+  }
 }
