@@ -2,12 +2,11 @@ import "package:tui/tui.dart";
 import "dart:async";
 import "dart:math";
 
-/// Simple counter panel using Frame.
 class CounterPanel extends Frame {
   int counter = 0;
 
-  CounterPanel(String label, {String color = '4'})
-      : super(title: label, color: color, focusColor: '7') {
+  CounterPanel(String label)
+      : super(title: label, color: '8', focusColor: '36') {
     focusable = true;
   }
 
@@ -28,15 +27,15 @@ class CounterPanel extends Frame {
   void update() {
     super.update();
 
-    // Add counter display
     var displayText = '$counter';
     var cx = (width - displayText.length) ~/ 2;
     var cy = height ~/ 2;
+
+    var numColor = focused ? '96' : '36';
     text.add(Text(displayText)
-      ..color = '0'
+      ..color = numColor
       ..position = Position(cx, cy));
 
-    // Focus hint
     if (focused) {
       var hint = '↑/↓ to change';
       var hx = (width - hint.length) ~/ 2;
@@ -47,7 +46,6 @@ class CounterPanel extends Frame {
   }
 }
 
-/// Progress bars panel using Frame.
 class ProgressPanel extends Frame {
   List<ProgressBar> bars = [];
   List<double> speeds = [];
@@ -55,14 +53,14 @@ class ProgressPanel extends Frame {
   Timer? timer;
   bool paused = false;
 
-  ProgressPanel() : super(title: 'PROGRESS', color: '5', focusColor: '7') {
+  ProgressPanel() : super(title: 'PROGRESS', color: '8', focusColor: '33') {
     focusable = true;
 
     var configs = [
-      ('CPU', '1'),
-      ('Memory', '2'),
-      ('Disk', '3'),
-      ('Network', '4'),
+      ('CPU', '31'),
+      ('Memory', '32'),
+      ('Disk', '33'),
+      ('Network', '34'),
     ];
 
     for (var (label, color) in configs) {
@@ -105,7 +103,6 @@ class ProgressPanel extends Frame {
   void update() {
     super.update();
 
-    // Position progress bars inside the frame
     children = [];
     int barY = 2;
     for (var bar in bars) {
@@ -115,10 +112,16 @@ class ProgressPanel extends Frame {
         barY += 2;
       }
     }
+
+    if (focused) {
+      var hint = 'SPACE = pause';
+      text.add(Text(hint)
+        ..color = '8'
+        ..position = Position(2, height - 2));
+    }
   }
 }
 
-/// Log viewer panel using Frame.
 class LogPanel extends Frame {
   List<String> logs = [];
   int scrollOffset = 0;
@@ -141,7 +144,7 @@ class LogPanel extends Frame {
     'ERROR Disk space low',
   ];
 
-  LogPanel() : super(title: 'LOG', color: '6', focusColor: '7') {
+  LogPanel() : super(title: 'LOG', color: '8', focusColor: '32') {
     focusable = true;
   }
 
@@ -206,7 +209,6 @@ class LogPanel extends Frame {
     title = autoScroll ? 'LOG' : 'LOG (scroll)';
     super.update();
 
-    // Log lines
     int visibleLines = height - 2;
     int start = scrollOffset;
     int end = min(logs.length, scrollOffset + visibleLines);
@@ -218,15 +220,22 @@ class LogPanel extends Frame {
       }
       var t = Text(line)..position = Position(1, 1 + (i - start));
       if (line.contains('ERROR')) {
-        t.color = '1';
+        t.color = '91';
       } else if (line.contains('WARN')) {
-        t.color = '3';
+        t.color = '93';
       } else if (line.contains('DEBUG')) {
-        t.color = '4';
+        t.color = '90';
       } else {
-        t.color = '2';
+        t.color = '92';
       }
       text.add(t);
+    }
+
+    if (focused) {
+      var hint = '↑/↓ scroll';
+      text.add(Text(hint)
+        ..color = '8'
+        ..position = Position(width - hint.length - 2, height - 2));
     }
   }
 }
@@ -239,6 +248,8 @@ class SplitDemo extends Window {
   bool horizontalMain = true;
 
   SplitDemo() {
+    showFps = true;
+
     logPanel = LogPanel();
     progressPanel = ProgressPanel();
 
@@ -278,6 +289,10 @@ class SplitDemo extends Window {
         horizontalMain = !horizontalMain;
         mainSplit.horizontal = horizontalMain;
         return true;
+      case 'f':
+      case 'F':
+        showFps = !showFps;
+        return true;
       case 'q':
         stop();
         return true;
@@ -289,13 +304,10 @@ class SplitDemo extends Window {
 void main() {
   print('SplitView Demo');
   print(BoxChars.lightH * 37);
-  print('TAB         = cycle focus between panels');
-  print('SPACE       = toggle layout / pause progress');
-  print('q           = quit');
-  print('');
-  print('In PROGRESS panel: SPACE/ENTER = pause');
-  print('In LOG panel:      ↑/↓ = scroll, HOME/END');
-  print('In COUNTER panel:  ↑/↓ = change counter');
+  print('TAB   = cycle focus between panels');
+  print('SPACE = toggle layout / pause progress');
+  print('F     = toggle FPS');
+  print('q     = quit');
   print(BoxChars.lightH * 37);
   print('Starting in 2 seconds...');
   Future.delayed(Duration(seconds: 2), () {
