@@ -285,6 +285,7 @@ class AnimationDemo extends Window {
   void _runBigTextMatrix() {
     statusText = 'BigText with MATRIX reveal...';
     final lines = BigText.generateLines('MATRIX', font: BigTextFont.shadow);
+    final maxLen = lines.map((l) => l.length).reduce((a, b) => a > b ? a : b);
     controller.add(BigTextAnimation(
       lines: lines,
       lineDelay: Duration(milliseconds: 120),
@@ -293,7 +294,8 @@ class AnimationDemo extends Window {
         currentEffect = rendered.join('\n');
       },
       onComplete: () {
-        currentEffect = lines.map((l) => '${Colors.brightGreen}$l${Colors.reset}').join('\n');
+        // Pad lines to clear any leftover matrix chars
+        currentEffect = lines.map((l) => '${Colors.brightGreen}${l.padRight(maxLen + 10)}${Colors.reset}').join('\n');
         statusText = 'Done! Press any key to continue.';
       },
     ));
