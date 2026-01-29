@@ -1,31 +1,24 @@
 part of tui;
 
 /// Abstract base for page progress indicators.
-///
-/// Implement [updateState] to refresh the visual state and
-/// override [update] to generate the display.
 abstract class PageIndicator extends View {
-  int _current = 0;
+  int _curr = 0;
   int _total = 0;
-  Set<int> _unlocked = {};
+  Set<int> _open = {};
 
-  int get current => _current;
+  int get current => _curr;
   int get total => _total;
-  Set<int> get unlocked => _unlocked;
+  Set<int> get unlocked => _open;
 
-  /// Called by PageView when navigation state changes
   void updateState(int current, int total, Set<int> unlocked) {
-    _current = current;
+    _curr = current;
     _total = total;
-    _unlocked = unlocked;
+    _open = unlocked;
     update();
   }
 }
 
 /// Step indicator with lines: [1]───[2]───[3]
-///
-/// Current step is highlighted, unlocked steps shown normally,
-/// locked future steps shown dimmed.
 class StepIndicator extends PageIndicator {
   final String? activeColor;
   final String? inactiveColor;
@@ -36,43 +29,37 @@ class StepIndicator extends PageIndicator {
   void update() {
     if (total == 0) return;
 
-    var buf = StringBuffer();
+    var b = StringBuffer();
 
     for (var i = 0; i < total; i++) {
       var label = "[${i + 1}]";
 
       if (i == current) {
-        // Current - highlighted
         if (activeColor != null) {
-          buf.write("\x1B[${activeColor}m$label\x1B[0m");
+          b.write("\x1B[${activeColor}m$label\x1B[0m");
         } else {
-          buf.write(label);
+          b.write(label);
         }
       } else if (i < current || unlocked.contains(i)) {
-        // Visited or unlocked - normal
-        buf.write(label);
+        b.write(label);
       } else {
-        // Future locked - dimmed
         if (inactiveColor != null) {
-          buf.write("\x1B[${inactiveColor}m$label\x1B[0m");
+          b.write("\x1B[${inactiveColor}m$label\x1B[0m");
         } else {
-          buf.write(label);
+          b.write(label);
         }
       }
 
-      // Add connector line (except after last)
       if (i < total - 1) {
-        buf.write("───");
+        b.write("───");
       }
     }
 
-    text = [Text(buf.toString())];
+    text = [Text(b.toString())];
   }
 }
 
 /// Dot indicator: ○ ● ○ ○
-///
-/// Filled dot for current page, empty dots for others.
 class DotIndicator extends PageIndicator {
   final String filledDot;
   final String emptyDot;
@@ -88,33 +75,33 @@ class DotIndicator extends PageIndicator {
   void update() {
     if (total == 0) return;
 
-    var buf = StringBuffer();
+    var b = StringBuffer();
 
     for (var i = 0; i < total; i++) {
-      if (i > 0) buf.write(" ");
+      if (i > 0) b.write(" ");
 
       if (i == current) {
         if (activeColor != null) {
-          buf.write("\x1B[${activeColor}m$filledDot\x1B[0m");
+          b.write("\x1B[${activeColor}m$filledDot\x1B[0m");
         } else {
-          buf.write(filledDot);
+          b.write(filledDot);
         }
       } else {
-        buf.write(emptyDot);
+        b.write(emptyDot);
       }
     }
 
-    text = [Text(buf.toString())];
+    text = [Text(b.toString())];
   }
 }
 
-/// Text indicator: "Krok 2 z 4" or "Step 2 of 4"
+/// Text indicator: "Krok 2 z 4"
 class TextIndicator extends PageIndicator {
   final String Function(int current, int total)? formatter;
 
   TextIndicator({this.formatter});
 
-  String _defaultFormat(int current, int total) {
+  String _fmt(int current, int total) {
     return "Krok ${current + 1} z $total";
   }
 
@@ -122,7 +109,7 @@ class TextIndicator extends PageIndicator {
   void update() {
     if (total == 0) return;
 
-    var format = formatter ?? _defaultFormat;
+    var format = formatter ?? _fmt;
     text = [Text(format(current, total))];
   }
 }

@@ -330,7 +330,7 @@ class GlitchAnimation extends Animation {
   GlitchAnimation({
     required this.text,
     required this.onUpdate,
-    this.glitchChars = '!@#\$%^&*<>[]{}|/\\~`',
+    this.glitchChars = '!@#\$%\^&*<>[]{}|/\\~`',
     this.intensity = 0.3,
     Duration duration = const Duration(milliseconds: 500),
     super.onComplete,

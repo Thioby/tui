@@ -1,54 +1,51 @@
 part of tui;
 
 class TreeNode {
-  TreeNode? _parent;
-  final List<TreeNode> _children = [];
+  TreeNode? _p;
+  final List<TreeNode> _kids = [];
 
-  int get depth => _parent != null ? _parent!.depth + 1 : 0;
+  int get depth => _p != null ? _p!.depth + 1 : 0;
 
   bool opened = false;
   bool leaf = false;
 
   TreeNode add(TreeNode node) {
-    node._parent = this;
-    _children.add(node);
+    node._p = this;
+    _kids.add(node);
     return node;
   }
 }
 
 class TreeNodeIterator implements Iterator<TreeNode> {
   late TreeNode current;
-  final TreeModel _model;
+  final TreeModel _mdl;
 
-  // Use a record or simple class for queue items: [node, nextChildIndex]
-  final _queue = Queue<({TreeNode node, int index})>();
+  final _q = Queue<({TreeNode node, int index})>();
 
-  TreeNodeIterator(this._model) {
-    _queue.add((node: _model.root, index: 0));
+  TreeNodeIterator(this._mdl) {
+    _q.add((node: _mdl.root, index: 0));
   }
 
   @override
   bool moveNext() {
-    while (_queue.isNotEmpty) {
-      var parent = _queue.last;
+    while (_q.isNotEmpty) {
+      var parent = _q.last;
       var node = parent.node;
       var index = parent.index;
 
-      if (node._children.length > index) {
-        // Increment index for next time we visit this parent
-        _queue.removeLast();
-        _queue.add((node: node, index: index + 1));
+      if (node._kids.length > index) {
+        _q.removeLast();
+        _q.add((node: node, index: index + 1));
 
-        var child = node._children[index];
+        var child = node._kids[index];
         current = child;
 
-        // If open and has children, add to queue to visit its children next
-        if (child.opened && child._children.isNotEmpty) {
-          _queue.add((node: child, index: 0));
+        if (child.opened && child._kids.isNotEmpty) {
+          _q.add((node: child, index: 0));
         }
         return true;
       } else {
-        _queue.removeLast();
+        _q.removeLast();
       }
     }
     return false;
@@ -56,8 +53,8 @@ class TreeNodeIterator implements Iterator<TreeNode> {
 }
 
 class TreeModel extends IterableBase<TreeNode> {
-  final _controller = StreamController<Map>.broadcast();
-  Stream<Map> get changes => _controller.stream;
+  final _ctrl = StreamController<Map>.broadcast();
+  Stream<Map> get changes => _ctrl.stream;
 
   final root = TreeNode();
 
@@ -130,9 +127,9 @@ abstract class TreeView extends View {
     var nodes = model.toList();
     if (cursor < nodes.length) {
       var node = nodes[cursor];
-      if (node._parent?._parent != null) {
-        node._parent!.opened = false;
-        cursor = model.indexOf(node._parent!) ?? 0;
+      if (node._p?._p != null) {
+        node._p!.opened = false;
+        cursor = model.indexOf(node._p!) ?? 0;
         scrollOffset = min(cursor, scrollOffset);
       }
     }
@@ -149,7 +146,6 @@ abstract class TreeView extends View {
     }
   }
 
-  /// Override to customize how each node is rendered as a string.
   String renderNode(TreeNode node);
 
   @override

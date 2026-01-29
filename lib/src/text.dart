@@ -1,53 +1,47 @@
 part of tui;
 
-class _TextNodeIteratorPointer {
+class _NodePtr {
   Text node;
-  int index;
-  _TextNodeIteratorPointer(this.node, this.index);
+  int idx;
+  _NodePtr(this.node, this.idx);
 }
 
 class TextNodeIterator implements Iterator<String> {
-  // represents single character
   String current = '';
-
-  // all of the parent nodes of the last String returned
   List<Text> lastStack = [];
+  Iterator<String>? _strIter;
+  final _stack = Queue<_NodePtr>();
 
-  // current text node
-  Iterator<String>? string;
-
-  // all of the parent text nodes, this is used to
-  // apply all of the previous styles up to this point
-  final stack = Queue<_TextNodeIteratorPointer>();
+  Queue<_NodePtr> get stack => _stack;
 
   TextNodeIterator(Text first) {
-    stack.add(_TextNodeIteratorPointer(first, 0));
+    _stack.add(_NodePtr(first, 0));
   }
 
   @override
   bool moveNext() {
-    if (string != null) {
-      if (string!.moveNext()) {
-        current = string!.current;
+    if (_strIter != null) {
+      if (_strIter!.moveNext()) {
+        current = _strIter!.current;
         return true;
       } else {
-        string = null;
-        stack.removeLast();
+        _strIter = null;
+        _stack.removeLast();
       }
     }
 
-    while (stack.isNotEmpty) {
-      var last = stack.last;
+    while (_stack.isNotEmpty) {
+      var last = _stack.last;
       Text node = last.node;
       if (node.isLeaf) {
-        lastStack = stack.map((p) => p.node).toList();
-        string = node.text!.split('').iterator;
+        lastStack = _stack.map((p) => p.node).toList();
+        _strIter = node.text!.split('').iterator;
         return moveNext();
-      } else if (node._nodes.length > last.index) {
-        Text childNode = node._nodes[last.index++];
-        stack.add(_TextNodeIteratorPointer(childNode, 0));
+      } else if (node._nodes.length > last.idx) {
+        Text childNode = node._nodes[last.idx++];
+        _stack.add(_NodePtr(childNode, 0));
       } else {
-        node = stack.removeLast().node;
+        node = _stack.removeLast().node;
       }
     }
     return false;
@@ -56,14 +50,14 @@ class TextNodeIterator implements Iterator<String> {
 
 /// A text element that supports styling and hierarchy.
 class Text extends IterableBase<String> with Positionable {
-  bool get isLeaf => _text != null;
+  bool get isLeaf => _txt != null;
   bool get hasChildren => _nodes.isNotEmpty;
 
-  String? _text;
-  String? get text => _text;
+  String? _txt;
+  String? get text => _txt;
   set text(String? text) {
     if (hasChildren) throw StateError("Cannot set text on container type.");
-    _text = text;
+    _txt = text;
   }
 
   final List<Text> _nodes = [];
@@ -79,7 +73,7 @@ class Text extends IterableBase<String> with Positionable {
   @override
   TextNodeIterator get iterator => TextNodeIterator(this);
 
-  Text([this._text]);
+  Text([this._txt]);
 
   void apply(Text text) {
     bold = text.bold;
@@ -88,7 +82,6 @@ class Text extends IterableBase<String> with Positionable {
   }
 
   String open() {
-    // Default to red if no color set? Preserving original logic.
     if (color != null) {
       return "\x1b[${color}m";
     } else {

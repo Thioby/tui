@@ -1,9 +1,6 @@
 part of tui;
 
 /// Base class for all UI components.
-///
-/// Provides size/position management, hierarchy handling, layout,
-/// rendering, and focus support.
 abstract class View with Sizable, Positionable {
   bool get hasChildren => children.isNotEmpty;
 
@@ -16,8 +13,6 @@ abstract class View with Sizable, Positionable {
   void onFocus() {}
   void onBlur() {}
 
-  /// Called when a key is pressed while focused.
-  /// Returns true if handled.
   bool onKey(String key) => false;
 
   List<View> get focusableViews {
@@ -36,7 +31,6 @@ abstract class View with Sizable, Positionable {
     update();
   }
 
-  /// Update text content. Called automatically after resize.
   void update() {}
 
   void resizeChildren() {
@@ -52,42 +46,42 @@ abstract class View with Sizable, Positionable {
 
   void renderTexts(Canvas canvas) {
     for (var line in text) {
-      _renderText(line, canvas);
+      _drawTxt(line, canvas);
     }
   }
 
-  void _renderText(Text text, Canvas canvas) {
-    var iter = text.iterator;
+  void _drawTxt(Text text, Canvas canvas) {
+    var it = text.iterator;
     var x = text.x;
     var y = text.y;
 
     var opened = false;
-    int? lastX;
-    int? lastY;
+    int? prevX;
+    int? prevY;
 
     for (; x < canvas.width; x++) {
-      if (iter.moveNext()) {
+      if (it.moveNext()) {
         if (!canvas.occluded(x, y)) {
-          var value = iter.current;
+          var val = it.current;
 
           if (!opened) {
-            value = iter.stack.last.node.open() + value;
+            val = it.stack.last.node.open() + val;
             opened = true;
           }
 
-          canvas.write(x, y, value);
-          lastX = x;
-          lastY = y;
+          canvas.write(x, y, val);
+          prevX = x;
+          prevY = y;
         } else if (opened) {
           opened = false;
-          final last = canvas.stringAt(lastX!, lastY!);
-          canvas.write(lastX, lastY, last + iter.lastStack.map((t) => t.close()).join());
+          final last = canvas.stringAt(prevX!, prevY!);
+          canvas.write(prevX, prevY, last + it.lastStack.map((t) => t.close()).join());
         }
       }
     }
-    if (opened && lastX != null && lastY != null) {
-      final last = canvas.stringAt(lastX, lastY);
-      canvas.write(lastX, lastY, last + iter.lastStack.map((t) => t.close()).join());
+    if (opened && prevX != null && prevY != null) {
+      final last = canvas.stringAt(prevX, prevY);
+      canvas.write(prevX, prevY, last + it.lastStack.map((t) => t.close()).join());
     }
   }
 

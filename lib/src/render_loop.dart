@@ -2,119 +2,104 @@ part of tui;
 
 /// Tracks frame timing and calculates FPS statistics.
 class FpsMeter {
-  final int _sampleSize;
-  final List<double> _frameTimes = [];
-  DateTime _lastFrame = DateTime.now();
+  final int _samples;
+  final List<double> _times = [];
+  DateTime _last = DateTime.now();
 
-  double _currentFps = 0;
-  double _averageFps = 0;
-  double _minFps = double.infinity;
-  double _maxFps = 0;
-  double _frameTimeMs = 0;
+  double _curr = 0;
+  double _avg = 0;
+  double _min = double.infinity;
+  double _max = 0;
+  double _ms = 0;
 
-  FpsMeter({int sampleSize = 60}) : _sampleSize = sampleSize;
+  FpsMeter({int sampleSize = 60}) : _samples = sampleSize;
 
-  /// Call at the start of each frame to record timing.
   void tick() {
     final now = DateTime.now();
-    final delta = now.difference(_lastFrame);
-    _lastFrame = now;
+    final delta = now.difference(_last);
+    _last = now;
 
-    _frameTimeMs = delta.inMicroseconds / 1000.0;
-    if (_frameTimeMs > 0) {
-      _currentFps = 1000.0 / _frameTimeMs;
+    _ms = delta.inMicroseconds / 1000.0;
+    if (_ms > 0) {
+      _curr = 1000.0 / _ms;
     }
 
-    _frameTimes.add(_frameTimeMs);
-    if (_frameTimes.length > _sampleSize) {
-      _frameTimes.removeAt(0);
+    _times.add(_ms);
+    if (_times.length > _samples) {
+      _times.removeAt(0);
     }
 
-    if (_frameTimes.isNotEmpty) {
-      final avgTime = _frameTimes.reduce((a, b) => a + b) / _frameTimes.length;
-      _averageFps = avgTime > 0 ? 1000.0 / avgTime : 0;
+    if (_times.isNotEmpty) {
+      final avgTime = _times.reduce((a, b) => a + b) / _times.length;
+      _avg = avgTime > 0 ? 1000.0 / avgTime : 0;
 
-      final minTime = _frameTimes.reduce((a, b) => a < b ? a : b);
-      final maxTime = _frameTimes.reduce((a, b) => a > b ? a : b);
-      _maxFps = minTime > 0 ? 1000.0 / minTime : 0;
-      _minFps = maxTime > 0 ? 1000.0 / maxTime : 0;
+      final minTime = _times.reduce((a, b) => a < b ? a : b);
+      final maxTime = _times.reduce((a, b) => a > b ? a : b);
+      _max = minTime > 0 ? 1000.0 / minTime : 0;
+      _min = maxTime > 0 ? 1000.0 / maxTime : 0;
     }
   }
 
-  /// Current instantaneous FPS.
-  double get currentFps => _currentFps;
+  double get currentFps => _curr;
+  double get averageFps => _avg;
+  double get minFps => _min;
+  double get maxFps => _max;
+  double get frameTimeMs => _ms;
 
-  /// Average FPS over sample window.
-  double get averageFps => _averageFps;
-
-  /// Minimum FPS in sample window.
-  double get minFps => _minFps;
-
-  /// Maximum FPS in sample window.
-  double get maxFps => _maxFps;
-
-  /// Last frame time in milliseconds.
-  double get frameTimeMs => _frameTimeMs;
-
-  /// Formatted string for display: "FPS: 60 (avg: 58, min: 45)"
   String get summary =>
-    'FPS: ${_currentFps.toStringAsFixed(0)} (avg: ${_averageFps.toStringAsFixed(0)}, min: ${_minFps.toStringAsFixed(0)})';
+    'FPS: ${_curr.toStringAsFixed(0)} (avg: ${_avg.toStringAsFixed(0)}, min: ${_min.toStringAsFixed(0)})';
 
-  /// Compact display: "60 fps | 16.7ms"
   String get compact =>
-    '${_averageFps.toStringAsFixed(0)} fps ${BoxChars.lightV} ${_frameTimeMs.toStringAsFixed(1)}ms';
+    '${_avg.toStringAsFixed(0)} fps ${BoxChars.lightV} ${_ms.toStringAsFixed(1)}ms';
 
-  /// Detailed multi-line display.
   List<String> get detailed => [
-    'FPS: ${_currentFps.toStringAsFixed(1)}',
-    'Avg: ${_averageFps.toStringAsFixed(1)}',
-    'Min: ${_minFps.toStringAsFixed(1)}',
-    'Max: ${_maxFps.toStringAsFixed(1)}',
-    'Frame: ${_frameTimeMs.toStringAsFixed(2)}ms',
+    'FPS: ${_curr.toStringAsFixed(1)}',
+    'Avg: ${_avg.toStringAsFixed(1)}',
+    'Min: ${_min.toStringAsFixed(1)}',
+    'Max: ${_max.toStringAsFixed(1)}',
+    'Frame: ${_ms.toStringAsFixed(2)}ms',
   ];
 
   void reset() {
-    _frameTimes.clear();
-    _currentFps = 0;
-    _averageFps = 0;
-    _minFps = double.infinity;
-    _maxFps = 0;
-    _frameTimeMs = 0;
-    _lastFrame = DateTime.now();
+    _times.clear();
+    _curr = 0;
+    _avg = 0;
+    _min = double.infinity;
+    _max = 0;
+    _ms = 0;
+    _last = DateTime.now();
   }
 }
 
 class RenderLoop {
-  late Duration _interval;
-  bool _stop = false;
+  late Duration _dur;
+  bool _stopped = false;
   final FpsMeter fps = FpsMeter();
 
-  /// Target FPS for the render loop.
-  int get targetFps => (1000 / _interval.inMilliseconds).round();
+  int get targetFps => (1000 / _dur.inMilliseconds).round();
 
-  RenderLoop({int milliseconds = 16}) {  // Default ~60 FPS
-    _interval = Duration(milliseconds: milliseconds);
+  RenderLoop({int milliseconds = 16}) {
+    _dur = Duration(milliseconds: milliseconds);
   }
 
-  /// Create render loop with target FPS.
   RenderLoop.withFps(int fps) {
-    _interval = Duration(milliseconds: (1000 / fps).round());
+    _dur = Duration(milliseconds: (1000 / fps).round());
   }
 
   void start([Function? onUpdate]) {
-    _scheduleFrame(onUpdate);
+    _loop(onUpdate);
   }
 
-  void _scheduleFrame([Function? onUpdate]) {
-    Timer(_interval, () {
-      if (_stop) return;
+  void _loop([Function? onUpdate]) {
+    Timer(_dur, () {
+      if (_stopped) return;
       fps.tick();
       if (onUpdate != null) {
         onUpdate();
       } else {
         update();
       }
-      _scheduleFrame(onUpdate);
+      _loop(onUpdate);
     });
   }
 
@@ -123,6 +108,6 @@ class RenderLoop {
   }
 
   void stop() {
-    _stop = true;
+    _stopped = true;
   }
 }

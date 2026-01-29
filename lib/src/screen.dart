@@ -5,7 +5,7 @@ part of tui;
 /// Once all [View.render] methods have been called, the Screen writes
 /// its buffer to stdout, optimizing by only writing changed lines.
 class Screen with Sizable {
-  List<List<String?>> _buffer = [];
+  List<List<String?>> _buf = [];
 
   Screen(Size size) {
     this.size = size;
@@ -18,7 +18,7 @@ class Screen with Sizable {
   }
 
   void clear() {
-    _buffer = List.generate(height, (_) => List.filled(width, null));
+    _buf = List.generate(height, (_) => List.filled(width, null));
   }
 
   Canvas canvas([Size? size, Position? offset]) {
@@ -31,21 +31,21 @@ class Screen with Sizable {
 
   @override
   String toString() {
-    return _buffer.map((line) => line.map((char) => char ?? " ").join()).join('\n');
+    return _buf.map((line) => line.map((char) => char ?? " ").join()).join('\n');
   }
 
   bool occluded(int x, int y) {
     if (x < 0 || y < 0 || x >= width || y >= height) return true;
-    return _buffer[y][x] != null;
+    return _buf[y][x] != null;
   }
 
   void write(int x, int y, String char) {
     if (x < 0 || y < 0 || x >= width || y >= height) return;
-    _buffer[y][x] = char;
+    _buf[y][x] = char;
   }
 
   String stringAt(int x, int y) {
     if (x < 0 || y < 0 || x >= width || y >= height) return '';
-    return _buffer[y][x] ?? '';
+    return _buf[y][x] ?? '';
   }
 }

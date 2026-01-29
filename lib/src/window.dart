@@ -2,62 +2,56 @@ part of tui;
 
 /// Top-level view that manages the application lifecycle.
 class Window extends View with FocusManager {
-  late Screen _screen;
+  late Screen _scr;
   late RenderLoop _loop;
-  late StreamSubscription<String> _input;
-  Size? _lastSize;
+  late StreamSubscription<String> _in;
+  Size? _lastSz;
 
-  /// Show FPS meter in top-right corner.
   bool showFps = false;
 
-  /// Access to FPS statistics.
   FpsMeter get fps => _loop.fps;
 
   @override
   View get focusRoot => this;
 
-  /// Starts the application.
   void start() {
-    _setupTerminal();
-    _startInputListener();
-    _startRenderLoop();
+    _initTerm();
+    _listenInput();
+    _startLoop();
     focusFirst();
   }
 
-  void _setupTerminal() {
+  void _initTerm() {
     stdin.echoMode = false;
     stdin.lineMode = false;
     stdout.write(ANSI.HIDE_CURSOR);
     stdout.write(ANSI.ERASE_SCREEN);
   }
 
-  void _startInputListener() {
-    _input = stdin.transform(ascii.decoder).listen(_handleKey);
+  void _listenInput() {
+    _in = stdin.transform(ascii.decoder).listen(_onInput);
   }
 
-  void _startRenderLoop() {
+  void _startLoop() {
     _loop = RenderLoop();
     _loop.start(() {
       var termSize = Size(stdout.terminalColumns, stdout.terminalLines);
 
-      // Clear screen if terminal was resized
-      if (_lastSize == null || _lastSize!.width != termSize.width || _lastSize!.height != termSize.height) {
+      if (_lastSz == null || _lastSz!.width != termSize.width || _lastSz!.height != termSize.height) {
         stdout.write(ANSI.ERASE_SCREEN);
-        _lastSize = termSize;
+        _lastSz = termSize;
       }
 
-      _screen = Screen(termSize);
-      var canvas = _screen.canvas();
+      _scr = Screen(termSize);
+      var canvas = _scr.canvas();
       resize(canvas.size, canvas.position);
       render(canvas);
 
       stdout.write(ANSI.CURSOR_HOME);
-      stdout.write(_screen.toString());
+      stdout.write(_scr.toString());
 
-      // Render FPS meter in top-right corner AFTER screen (overlay)
       if (showFps) {
         final fpsText = _loop.fps.compact;
-        // Strip ANSI for length calculation
         final plainText = fpsText.replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '');
         final fpsX = termSize.width - plainText.length - 1;
         if (fpsX > 0) {
@@ -67,41 +61,35 @@ class Window extends View with FocusManager {
     });
   }
 
-  void _handleKey(String key) {
-    // Tab cycles focus
+  void _onInput(String key) {
     if (key == KeyCode.TAB) {
       focusNext();
       return;
     }
-    // Shift+Tab cycles focus backwards
     if (key == KeyCode.SHIFT_TAB) {
       focusPrev();
       return;
     }
 
-    // Route to focused view first
     if (routeKeyToFocused(key)) {
-      return; // Key was handled
+      return;
     }
 
-    // Otherwise let Window handle it
     onKey(key);
   }
 
-  /// Override to handle keys not consumed by focused view.
   @override
   bool onKey(String key) => false;
 
   void stop() {
     _loop.stop();
-    // Defer cleanup to avoid conflicts with stdin event handling
     scheduleMicrotask(() {
-      _input.cancel();
-      _restoreTerminal();
+      _in.cancel();
+      _restoreTerm();
     });
   }
 
-  void _restoreTerminal() {
+  void _restoreTerm() {
     stdout.write(ANSI.SHOW_CURSOR);
     stdout.write(ANSI.ERASE_SCREEN);
     stdout.write(ANSI.CURSOR_HOME);
@@ -109,7 +97,6 @@ class Window extends View with FocusManager {
       stdin.echoMode = true;
       stdin.lineMode = true;
     } on StdinException {
-      // Terminal may already be in bad state during shutdown
     }
   }
 }

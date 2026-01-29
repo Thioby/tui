@@ -1,101 +1,48 @@
 part of tui;
 
-/// Table border styles.
 enum TableBorder {
-  /// No border.
   none,
-
-  /// Simple ASCII: +, -, |
   ascii,
-
-  /// Light lines: ┌─┐│└┘
   light,
-
-  /// Heavy lines: ┏━┓┃┗┛
   heavy,
-
-  /// Double lines: ╔═╗║╚╝
   double,
-
-  /// Rounded corners: ╭─╮│╰╯
   rounded,
 }
 
-/// Column definition for Table.
 class TableColumn {
-  /// Column header text.
   final String title;
-
-  /// Column width. If null, auto-calculated.
   int? width;
-
-  /// Text alignment within column.
   final TextAlign align;
 
   TableColumn(this.title, {this.width, this.align = TextAlign.left});
 }
 
-/// Text alignment options.
 enum TextAlign { left, center, right }
 
 /// Tabular data display widget.
-///
-/// Example:
-/// ```dart
-/// var table = Table<Map<String, String>>(
-///   columns: [
-///     TableColumn('Name', width: 20),
-///     TableColumn('Email', width: 30),
-///   ],
-///   rows: [
-///     {'Name': 'Alice', 'Email': 'alice@example.com'},
-///     {'Name': 'Bob', 'Email': 'bob@example.com'},
-///   ],
-///   rowBuilder: (item) => [item['Name']!, item['Email']!],
-///   onSelect: (item) => print('Selected: ${item['Name']}'),
-/// );
-/// ```
 class Table<T> extends View {
-  /// Column definitions.
   List<TableColumn> columns;
 
-  /// Row data.
   List<T> rows;
 
-  /// Function to convert row data to list of cell strings.
   List<String> Function(T) rowBuilder;
 
-  /// Currently selected row index.
   int selectedRow = 0;
 
-  /// Scroll offset for long tables.
   int scrollOffset = 0;
 
-  /// Whether rows are selectable.
   bool selectable;
 
-  /// Show header row.
   bool showHeader;
 
-  /// Border style.
   TableBorder border;
 
-  /// Color for header (ANSI code).
   String headerColor = '1';
-
-  /// Color for selected row (ANSI code).
   String selectedColor = '7';
-
-  /// Color for normal rows (ANSI code).
   String rowColor = '0';
-
-  /// Color for border (ANSI code).
   String borderColor = '36';
 
-  /// Called when Enter is pressed on a row.
   void Function(T row)? onSelect;
-
-  /// Called when selection changes.
   void Function(int index)? onChange;
 
   Table({
@@ -111,14 +58,13 @@ class Table<T> extends View {
     focusable = selectable;
   }
 
-  int get _headerHeight {
+  int get _hdrH {
     if (!showHeader) return 0;
-    // Header line + separator line (if bordered)
     return border != TableBorder.none ? 2 : 1;
   }
 
-  int get _borderHeight => border != TableBorder.none ? 2 : 0;
-  int get _visibleRows => height - _headerHeight - _borderHeight;
+  int get _brdH => border != TableBorder.none ? 2 : 0;
+  int get _visRows => height - _hdrH - _brdH;
 
   @override
   bool onKey(String key) {
@@ -127,7 +73,7 @@ class Table<T> extends View {
     if (key == KeyCode.UP) {
       if (selectedRow > 0) {
         selectedRow--;
-        _adjustScroll();
+        _scroll();
         onChange?.call(selectedRow);
         update();
       }
@@ -137,7 +83,7 @@ class Table<T> extends View {
     if (key == KeyCode.DOWN) {
       if (selectedRow < rows.length - 1) {
         selectedRow++;
-        _adjustScroll();
+        _scroll();
         onChange?.call(selectedRow);
         update();
       }
@@ -154,23 +100,23 @@ class Table<T> extends View {
 
     if (key == KeyCode.END) {
       selectedRow = rows.length - 1;
-      _adjustScroll();
+      _scroll();
       onChange?.call(selectedRow);
       update();
       return true;
     }
 
     if (key == KeyCode.PAGE_UP) {
-      selectedRow = (selectedRow - _visibleRows).clamp(0, rows.length - 1);
-      _adjustScroll();
+      selectedRow = (selectedRow - _visRows).clamp(0, rows.length - 1);
+      _scroll();
       onChange?.call(selectedRow);
       update();
       return true;
     }
 
     if (key == KeyCode.PAGE_DOWN) {
-      selectedRow = (selectedRow + _visibleRows).clamp(0, rows.length - 1);
-      _adjustScroll();
+      selectedRow = (selectedRow + _visRows).clamp(0, rows.length - 1);
+      _scroll();
       onChange?.call(selectedRow);
       update();
       return true;
@@ -186,16 +132,15 @@ class Table<T> extends View {
     return false;
   }
 
-  void _adjustScroll() {
+  void _scroll() {
     if (selectedRow < scrollOffset) {
       scrollOffset = selectedRow;
-    } else if (selectedRow >= scrollOffset + _visibleRows) {
-      scrollOffset = selectedRow - _visibleRows + 1;
+    } else if (selectedRow >= scrollOffset + _visRows) {
+      scrollOffset = selectedRow - _visRows + 1;
     }
   }
 
-  void _calculateColumnWidths() {
-    // Calculate widths for columns without explicit width
+  void _calcWidths() {
     for (var col in columns) {
       if (col.width == null) {
         var maxWidth = col.title.length;
@@ -206,12 +151,12 @@ class Table<T> extends View {
             maxWidth = cells[idx].length;
           }
         }
-        col.width = maxWidth + 2; // +2 for cell padding (space on each side)
+        col.width = maxWidth + 2;
       }
     }
   }
 
-  String _alignText(String text, int width, TextAlign align) {
+  String _align(String text, int width, TextAlign align) {
     if (text.length >= width) return text.substring(0, width);
 
     switch (align) {
@@ -225,7 +170,7 @@ class Table<T> extends View {
     }
   }
 
-  _BorderChars get _borderChars {
+  _BorderChars get _chars {
     switch (border) {
       case TableBorder.none:
         return _BorderChars(
@@ -271,12 +216,11 @@ class Table<T> extends View {
     text = [];
     if (width < 5 || height < 2) return;
 
-    _calculateColumnWidths();
+    _calcWidths();
 
-    var chars = _borderChars;
+    var chars = _chars;
     var y = 0;
 
-    // Top border with T-pieces at column intersections
     if (border != TableBorder.none) {
       var topLine = chars.tl +
           columns.map((c) => chars.h * c.width!).join(chars.tm) +
@@ -287,17 +231,15 @@ class Table<T> extends View {
         ..position = Position(0, y++));
     }
 
-    // Header
     if (showHeader) {
       var headerLine = chars.v +
-          columns.map((c) => _alignText(' ${c.title} ', c.width!, c.align)).join(chars.v) +
+          columns.map((c) => _align(' ${c.title} ', c.width!, c.align)).join(chars.v) +
           chars.v;
       if (headerLine.length > width) headerLine = headerLine.substring(0, width);
       text.add(Text(headerLine)
         ..color = headerColor
         ..position = Position(0, y++));
 
-      // Header separator with cross pieces at intersections
       if (border != TableBorder.none) {
         var sepLine = chars.ml +
             columns.map((c) => chars.h * c.width!).join(chars.mm) +
@@ -309,8 +251,7 @@ class Table<T> extends View {
       }
     }
 
-    // Rows
-    var endIdx = (scrollOffset + _visibleRows).clamp(0, rows.length);
+    var endIdx = (scrollOffset + _visRows).clamp(0, rows.length);
     for (var i = scrollOffset; i < endIdx; i++) {
       var row = rows[i];
       var cells = rowBuilder(row);
@@ -321,7 +262,7 @@ class Table<T> extends View {
             var idx = e.key;
             var col = e.value;
             var cellText = idx < cells.length ? cells[idx] : '';
-            return _alignText(' $cellText ', col.width!, col.align);
+            return _align(' $cellText ', col.width!, col.align);
           }).join(chars.v) +
           chars.v;
 
@@ -332,7 +273,6 @@ class Table<T> extends View {
         ..position = Position(0, y++));
     }
 
-    // Bottom border with T-pieces at column intersections
     if (border != TableBorder.none) {
       var bottomLine = chars.bl +
           columns.map((c) => chars.h * c.width!).join(chars.bm) +
@@ -347,7 +287,7 @@ class Table<T> extends View {
 
 class _BorderChars {
   final String tl, h, tr, v, ml, mr, bl, br;
-  final String tm, mm, bm; // T-pieces: top-middle, middle-middle (cross), bottom-middle
+  final String tm, mm, bm;
 
   _BorderChars({
     required this.tl,

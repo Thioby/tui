@@ -1,67 +1,35 @@
 part of tui;
 
 /// List selection widget.
-///
-/// Example:
-/// ```dart
-/// var select = Select<String>(
-///   options: ['Red', 'Green', 'Blue'],
-///   onSelect: (value) => print('Selected: $value'),
-/// );
-/// ```
 class Select<T> extends View {
-  /// Options to choose from.
   List<T> options;
 
-  /// Currently highlighted index.
   int selectedIndex = 0;
 
-  /// Scroll offset for long lists.
   int scrollOffset = 0;
 
-  /// Function to convert option to display string.
   String Function(T)? labelBuilder;
 
-  /// If true, allows multiple selections with Space key.
   bool multiSelect;
 
-  /// Set of selected indices (for multiSelect mode).
   Set<int> selectedIndices = {};
 
-  /// Maximum number of selections (0 = unlimited).
   int limit;
 
-  /// Cursor prefix for highlighted item.
   String cursor = '> ';
 
-  /// Prefix for selected items (multiSelect mode).
   String selectedPrefix = '✓ ';
-
-  /// Prefix for unselected items.
   String unselectedPrefix = '  ';
 
-  /// Color for cursor (ANSI code).
   String cursorColor = '36';
-
-  /// Color for selected items (ANSI code).
   String selectedColor = '32';
-
-  /// Color for normal items (ANSI code).
   String itemColor = '0';
 
-  /// Optional header text.
   String? header;
-
-  /// Color for header (ANSI code).
   String headerColor = '33';
 
-  /// Called when Enter is pressed (single select mode).
   void Function(T value)? onSelect;
-
-  /// Called when Enter is pressed (multiSelect mode).
   void Function(List<T> values)? onSelectMultiple;
-
-  /// Called when selection changes.
   void Function(int index)? onChange;
 
   Select({
@@ -77,20 +45,20 @@ class Select<T> extends View {
     focusable = true;
   }
 
-  String _getLabel(T option) {
+  String _lbl(T option) {
     return labelBuilder?.call(option) ?? option.toString();
   }
 
-  int get _headerOffset => header != null ? 1 : 0;
+  int get _hdrOff => header != null ? 1 : 0;
 
-  int get _visibleCount => height - _headerOffset;
+  int get _visCnt => height - _hdrOff;
 
   @override
   bool onKey(String key) {
     if (key == KeyCode.UP) {
       if (selectedIndex > 0) {
         selectedIndex--;
-        _adjustScroll();
+        _scroll();
         onChange?.call(selectedIndex);
         update();
       }
@@ -100,7 +68,7 @@ class Select<T> extends View {
     if (key == KeyCode.DOWN) {
       if (selectedIndex < options.length - 1) {
         selectedIndex++;
-        _adjustScroll();
+        _scroll();
         onChange?.call(selectedIndex);
         update();
       }
@@ -117,37 +85,36 @@ class Select<T> extends View {
 
     if (key == KeyCode.END) {
       selectedIndex = options.length - 1;
-      _adjustScroll();
+      _scroll();
       onChange?.call(selectedIndex);
       update();
       return true;
     }
 
     if (key == KeyCode.PAGE_UP) {
-      selectedIndex = (selectedIndex - _visibleCount).clamp(0, options.length - 1);
-      _adjustScroll();
+      selectedIndex = (selectedIndex - _visCnt).clamp(0, options.length - 1);
+      _scroll();
       onChange?.call(selectedIndex);
       update();
       return true;
     }
 
     if (key == KeyCode.PAGE_DOWN) {
-      selectedIndex = (selectedIndex + _visibleCount).clamp(0, options.length - 1);
-      _adjustScroll();
+      selectedIndex = (selectedIndex + _visCnt).clamp(0, options.length - 1);
+      _scroll();
       onChange?.call(selectedIndex);
       update();
       return true;
     }
 
     if (key == KeyCode.SPACE && multiSelect) {
-      _toggleSelection(selectedIndex);
+      _toggle(selectedIndex);
       update();
       return true;
     }
 
     if (key == KeyCode.ENTER) {
       if (multiSelect) {
-        // In multiSelect mode, select current if nothing selected
         if (selectedIndices.isEmpty) {
           selectedIndices.add(selectedIndex);
         }
@@ -164,7 +131,7 @@ class Select<T> extends View {
     return false;
   }
 
-  void _toggleSelection(int index) {
+  void _toggle(int index) {
     if (selectedIndices.contains(index)) {
       selectedIndices.remove(index);
     } else {
@@ -174,12 +141,11 @@ class Select<T> extends View {
     }
   }
 
-  void _adjustScroll() {
-    // Ensure selected item is visible
+  void _scroll() {
     if (selectedIndex < scrollOffset) {
       scrollOffset = selectedIndex;
-    } else if (selectedIndex >= scrollOffset + _visibleCount) {
-      scrollOffset = selectedIndex - _visibleCount + 1;
+    } else if (selectedIndex >= scrollOffset + _visCnt) {
+      scrollOffset = selectedIndex - _visCnt + 1;
     }
   }
 
@@ -190,18 +156,16 @@ class Select<T> extends View {
 
     var y = 0;
 
-    // Header
     if (header != null) {
       text.add(Text(header!)
         ..color = headerColor
         ..position = Position(0, y++));
     }
 
-    // Options
-    var endIndex = (scrollOffset + _visibleCount).clamp(0, options.length);
+    var endIndex = (scrollOffset + _visCnt).clamp(0, options.length);
     for (var i = scrollOffset; i < endIndex; i++) {
       var option = options[i];
-      var label = _getLabel(option);
+      var label = _lbl(option);
       var isHighlighted = i == selectedIndex;
       var isSelected = selectedIndices.contains(i);
 
@@ -229,10 +193,9 @@ class Select<T> extends View {
         ..position = Position(0, y++));
     }
 
-    // Scroll indicator
-    if (options.length > _visibleCount) {
-      var scrollPercent = scrollOffset / (options.length - _visibleCount);
-      var indicatorY = _headerOffset + (scrollPercent * (_visibleCount - 1)).round();
+    if (options.length > _visCnt) {
+      var scrollPercent = scrollOffset / (options.length - _visCnt);
+      var indicatorY = _hdrOff + (scrollPercent * (_visCnt - 1)).round();
       text.add(Text('│')
         ..color = '8'
         ..position = Position(width - 1, indicatorY));
@@ -241,37 +204,18 @@ class Select<T> extends View {
 }
 
 /// Yes/No confirmation dialog.
-///
-/// Example:
-/// ```dart
-/// var confirm = Confirm(
-///   message: 'Are you sure?',
-///   onConfirm: (result) => print(result ? 'Yes' : 'No'),
-/// );
-/// ```
 class Confirm extends View {
-  /// Question to display.
   String message;
 
-  /// Currently selected option (true = Yes).
   bool selected;
 
-  /// Label for "Yes" option.
   String yesLabel;
-
-  /// Label for "No" option.
   String noLabel;
 
-  /// Color for message (ANSI code).
   String messageColor = '0';
-
-  /// Color for selected option (ANSI code).
-  String selectedColor = '7'; // inverted
-
-  /// Color for unselected option (ANSI code).
+  String selectedColor = '7';
   String unselectedColor = '0';
 
-  /// Called when Enter is pressed.
   void Function(bool result)? onConfirm;
 
   Confirm({
@@ -317,23 +261,15 @@ class Confirm extends View {
     text = [];
     if (width < 10 || height < 1) return;
 
-    // Message
     text.add(Text(message)..color = messageColor);
 
-    // Options on second line (or after message if single line)
     var yesText = selected ? '[$yesLabel]' : ' $yesLabel ';
     var noText = selected ? ' $noLabel ' : '[$noLabel]';
 
-    var optionsLine = '$yesText  $noText';
-    var optionsY = height > 1 ? 1 : 0;
-    var optionsX = height > 1 ? 0 : message.length + 2;
-
     if (height == 1) {
-      // Single line mode
       var fullText = '$message  $yesText  $noText';
       text = [Text(fullText)..color = messageColor];
 
-      // Highlight selected
       var yesStart = message.length + 2;
       var noStart = yesStart + yesText.length + 2;
 
@@ -347,7 +283,6 @@ class Confirm extends View {
           ..position = Position(noStart, 0));
       }
     } else {
-      // Two line mode
       text.add(Text(message)
         ..color = messageColor
         ..position = Position(0, 0));

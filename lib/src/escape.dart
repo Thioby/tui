@@ -86,7 +86,6 @@ abstract class Colors {
   static const String blink = '\x1B[5m';
   static const String inverse = '\x1B[7m';
 
-  // Foreground colors
   static const String black = '\x1B[30m';
   static const String red = '\x1B[31m';
   static const String green = '\x1B[32m';
@@ -96,7 +95,6 @@ abstract class Colors {
   static const String cyan = '\x1B[36m';
   static const String white = '\x1B[37m';
 
-  // Bright foreground colors
   static const String brightBlack = '\x1B[90m';
   static const String brightRed = '\x1B[91m';
   static const String brightGreen = '\x1B[92m';
@@ -106,7 +104,6 @@ abstract class Colors {
   static const String brightCyan = '\x1B[96m';
   static const String brightWhite = '\x1B[97m';
 
-  // Background colors
   static const String bgBlack = '\x1B[40m';
   static const String bgRed = '\x1B[41m';
   static const String bgGreen = '\x1B[42m';
@@ -116,22 +113,14 @@ abstract class Colors {
   static const String bgCyan = '\x1B[46m';
   static const String bgWhite = '\x1B[47m';
 
-  /// Create 256-color foreground: `\x1B[38;5;{n}m`
   static String fg256(int n) => '\x1B[38;5;${n}m';
-
-  /// Create 256-color background: `\x1B[48;5;{n}m`
   static String bg256(int n) => '\x1B[48;5;${n}m';
-
-  /// Create true color (24-bit) foreground: `\x1B[38;2;r;g;b m`
   static String fgRgb(int r, int g, int b) => '\x1B[38;2;$r;$g;${b}m';
-
-  /// Create true color (24-bit) background: `\x1B[48;2;r;g;b m`
   static String bgRgb(int r, int g, int b) => '\x1B[48;2;$r;$g;${b}m';
 }
 
 /// Box drawing characters for borders and frames.
 abstract class BoxChars {
-  // Light box (─│┌┐└┘├┤┬┴┼)
   static const String lightH = '─';
   static const String lightV = '│';
   static const String lightTL = '┌';
@@ -144,7 +133,6 @@ abstract class BoxChars {
   static const String lightTeeU = '┴';
   static const String lightCross = '┼';
 
-  // Heavy box (━┃┏┓┗┛┣┫┳┻╋)
   static const String heavyH = '━';
   static const String heavyV = '┃';
   static const String heavyTL = '┏';
@@ -157,7 +145,6 @@ abstract class BoxChars {
   static const String heavyTeeU = '┻';
   static const String heavyCross = '╋';
 
-  // Double box (═║╔╗╚╝╠╣╦╩╬)
   static const String doubleH = '═';
   static const String doubleV = '║';
   static const String doubleTL = '╔';
@@ -170,18 +157,15 @@ abstract class BoxChars {
   static const String doubleTeeU = '╩';
   static const String doubleCross = '╬';
 
-  // Rounded corners (╭╮╰╯) - uses light lines
   static const String roundedTL = '╭';
   static const String roundedTR = '╮';
   static const String roundedBL = '╰';
   static const String roundedBR = '╯';
 
-  // ASCII fallback
   static const String asciiH = '-';
   static const String asciiV = '|';
   static const String asciiCorner = '+';
 
-  // Block elements
   static const String fullBlock = '█';
   static const String lightShade = '░';
   static const String mediumShade = '▒';
@@ -191,7 +175,6 @@ abstract class BoxChars {
   static const String leftHalf = '▌';
   static const String rightHalf = '▐';
 
-  // Progress bar characters
   static const String progressFull = '█';
   static const String progressEmpty = '░';
   static const String progressHalf = '▌';

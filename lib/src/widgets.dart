@@ -64,10 +64,7 @@ class CenteredText extends View {
 
 /// Splits available space between children horizontally or vertically.
 class SplitView extends View {
-  /// If true, children are placed side by side (horizontal).
   bool horizontal;
-
-  /// Optional ratios for sizing children. If null, space is divided equally.
   List<int>? ratios;
 
   SplitView({this.horizontal = true, this.ratios});
@@ -81,40 +78,25 @@ class SplitView extends View {
       totalRatio += (ratios != null && i < ratios!.length) ? ratios![i] : 1;
     }
 
-    final availableSize = horizontal ? width : height;
+    final avail = horizontal ? width : height;
 
     int offset = 0;
     for (int i = 0; i < children.length; i++) {
       final ratio = ratios != null && i < ratios!.length ? ratios![i] : 1;
-      final childDimension = (availableSize * ratio / totalRatio).floor();
+      final dim = (avail * ratio / totalRatio).floor();
 
       if (horizontal) {
-        children[i].resize(Size(childDimension, height), Position(offset, 0));
+        children[i].resize(Size(dim, height), Position(offset, 0));
       } else {
-        children[i].resize(Size(width, childDimension), Position(0, offset));
+        children[i].resize(Size(width, dim), Position(0, offset));
       }
 
-      offset += childDimension;
+      offset += dim;
     }
   }
 }
 
 /// A frame with Unicode border and optional title.
-///
-/// Example:
-/// ```dart
-/// Frame(title: 'Status', color: '36')
-///   ..children = [myContent];
-/// ```
-///
-/// Renders as:
-/// ```
-/// ┌─ Status ────────┐
-/// │                 │
-/// │  [content]      │
-/// │                 │
-/// └─────────────────┘
-/// ```
 class Frame extends View {
   String? title;
   String color;
@@ -133,7 +115,6 @@ class Frame extends View {
     var innerWidth = width - 2;
     var borderColor = focused && focusColor != null ? focusColor! : color;
 
-    // Use double-line border when focused
     var h = focused && focusColor != null ? BoxChars.doubleH : BoxChars.lightH;
     var v = focused && focusColor != null ? BoxChars.doubleV : BoxChars.lightV;
     var tl = focused && focusColor != null ? BoxChars.doubleTL : BoxChars.lightTL;
@@ -141,7 +122,6 @@ class Frame extends View {
     var bl = focused && focusColor != null ? BoxChars.doubleBL : BoxChars.lightBL;
     var br = focused && focusColor != null ? BoxChars.doubleBR : BoxChars.lightBR;
 
-    // Top border with optional title
     String topBorder;
     if (title != null && title!.isNotEmpty) {
       var titleText = ' $title ';
@@ -154,7 +134,6 @@ class Frame extends View {
 
     text = [Text(topBorder)..color = borderColor];
 
-    // Side borders
     for (var i = 1; i < height - 1; i++) {
       text.add(Text(v)
         ..color = borderColor
@@ -164,7 +143,6 @@ class Frame extends View {
         ..position = Position(width - 1, i));
     }
 
-    // Bottom border
     text.add(Text('$bl${h * innerWidth}$br')
       ..color = borderColor
       ..position = Position(0, height - 1));
@@ -188,19 +166,19 @@ class Frame extends View {
 
 /// A progress bar widget.
 class ProgressBar extends View {
-  double _value = 0.0;
-  double get value => _value;
-  set value(double v) => _value = v.clamp(0.0, 1.0);
+  double _val = 0.0;
+  double get value => _val;
+  set value(double v) => _val = v.clamp(0.0, 1.0);
 
   bool showPercent = true;
 
-  String color = "2"; // green
+  String color = "2";
   String emptyColor = "8";
   String filledChar = BoxChars.progressFull;
   String emptyChar = BoxChars.progressEmpty;
   String? label;
 
-  static const List<String> _partialBlocks = [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", BoxChars.progressFull];
+  static const List<String> _blocks = [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", BoxChars.progressFull];
 
   @override
   void update() {
@@ -217,7 +195,7 @@ class ProgressBar extends View {
     int barWidth = width - labelWidth - percentWidth - 2;
     if (barWidth < 1) barWidth = 1;
 
-    double filledExact = barWidth * _value;
+    double filledExact = barWidth * _val;
     int filledFull = filledExact.floor();
     double remainder = filledExact - filledFull;
     int partialIndex = (remainder * 8).round();
@@ -228,7 +206,7 @@ class ProgressBar extends View {
 
     if (filledFull < barWidth) {
       if (partialIndex > 0 && partialIndex < 8) {
-        bar.write(_partialBlocks[partialIndex]);
+        bar.write(_blocks[partialIndex]);
         bar.write(emptyChar * (barWidth - filledFull - 1));
       } else {
         bar.write(emptyChar * (barWidth - filledFull));
@@ -237,7 +215,7 @@ class ProgressBar extends View {
     bar.write("]");
 
     if (showPercent) {
-      int pct = (_value * 100).round();
+      int pct = (_val * 100).round();
       bar.write(pct.toString().padLeft(4));
       bar.write("%");
     }

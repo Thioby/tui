@@ -1,26 +1,16 @@
 part of tui;
 
-/// Font style for BigText widget.
 enum BigTextFont {
-  /// Block letters using █ characters (5 lines high)
   block,
-
-  /// Slim letters using ╔═╗ box drawing (5 lines high)
   slim,
-
-  /// Chunky half-block style ▄▀ (4 lines high)
   chunky,
-
-  /// FIGlet-style 3D shadow font ███╗ (6 lines high)
   shadow,
 }
 
-/// RGB color for gradients.
 class RGB {
   final int r, g, b;
   const RGB(this.r, this.g, this.b);
 
-  /// Interpolate between two colors.
   RGB lerp(RGB other, double t) {
     return RGB(
       (r + (other.r - r) * t).round(),
@@ -29,11 +19,9 @@ class RGB {
     );
   }
 
-  /// Convert to ANSI true color escape sequence.
   String toAnsi() => '38;2;$r;$g;$b';
 }
 
-/// Predefined gradients.
 class Gradients {
   static const rainbow = [
     RGB(255, 0, 0),
@@ -94,65 +82,46 @@ class Gradients {
 }
 
 /// Displays text as large ASCII art letters with optional subtitle and border.
-///
-/// Example:
-/// ```dart
-/// var banner = BigText('HELLO', font: BigTextFont.shadow)
-///   ..subtitle = 'Welcome to the app'
-///   ..gradient = Gradients.gemini
-///   ..showBorder = true;
-/// ```
 class BigText extends View {
-  String _text;
+  String _txt;
 
-  String get content => _text;
+  String get content => _txt;
   set content(String value) {
-    _text = value.toUpperCase();
+    _txt = value.toUpperCase();
     update();
   }
 
-  /// Font style to use.
   BigTextFont font;
 
-  /// Color for the text (ANSI code). Ignored if gradient is set.
   String color = '0';
 
-  /// Gradient colors. If set, overrides color.
   List<RGB>? gradient;
 
-  /// Horizontal spacing between letters.
   int letterSpacing = 1;
 
-  /// Optional subtitle displayed below the main text.
   String? subtitle;
 
-  /// Color for subtitle (ANSI code).
   String subtitleColor = '8';
 
-  /// Whether to show a border around the banner.
   bool showBorder = false;
 
-  /// Border color (ANSI code).
   String borderColor = '36';
 
-  /// Whether to center the text horizontally.
   bool centered = true;
 
-  BigText(this._text, {
+  BigText(this._txt, {
     this.font = BigTextFont.block,
     this.gradient,
     this.subtitle,
     this.showBorder = false,
     this.centered = true,
   }) {
-    _text = _text.toUpperCase();
+    _txt = _txt.toUpperCase();
   }
 
-  /// Generate raw ASCII art lines for given text and font.
-  /// Useful for animations that need the raw line data.
   static List<String> generateLines(String text, {BigTextFont font = BigTextFont.shadow, int letterSpacing = 1}) {
     text = text.toUpperCase();
-    var fontData = _getFontDataFor(font);
+    var fontData = _fontData(font);
     var charHeight = fontData.height;
     var lines = List.generate(charHeight, (_) => StringBuffer());
 
@@ -173,16 +142,16 @@ class BigText extends View {
     return lines.map((sb) => sb.toString()).toList();
   }
 
-  static _FontData _getFontDataFor(BigTextFont font) {
+  static _FontData _fontData(BigTextFont font) {
     switch (font) {
       case BigTextFont.block:
-        return _blockFont;
+        return _fontBlock;
       case BigTextFont.slim:
-        return _slimFont;
+        return _fontSlim;
       case BigTextFont.chunky:
-        return _chunkyFont;
+        return _fontChunky;
       case BigTextFont.shadow:
-        return _shadowFont;
+        return _fontShadow;
     }
   }
 
@@ -191,20 +160,19 @@ class BigText extends View {
     text = [];
     if (width < 1 || height < 1) return;
 
-    var fontData = _getFontData();
+    var fontData = _fontData(font);
     var charHeight = fontData.height;
     var lines = List.generate(charHeight, (_) => StringBuffer());
 
-    // Build the text lines
-    for (var i = 0; i < _text.length; i++) {
-      var char = _text[i];
+    for (var i = 0; i < _txt.length; i++) {
+      var char = _txt[i];
       var glyph = fontData.glyphs[char] ?? fontData.glyphs[' ']!;
 
       for (var row = 0; row < charHeight; row++) {
         if (row < glyph.length) {
           lines[row].write(glyph[row]);
         }
-        if (i < _text.length - 1) {
+        if (i < _txt.length - 1) {
           lines[row].write(' ' * letterSpacing);
         }
       }
@@ -212,14 +180,13 @@ class BigText extends View {
 
     var textWidth = lines.isNotEmpty ? lines[0].length : 0;
     var totalHeight = charHeight;
-    if (subtitle != null) totalHeight += 2; // spacing + subtitle
-    if (showBorder) totalHeight += 2; // top + bottom border
+    if (subtitle != null) totalHeight += 2;
+    if (showBorder) totalHeight += 2;
 
     var y = 0;
     var contentWidth = showBorder ? width - 2 : width;
     var xOffset = showBorder ? 1 : 0;
 
-    // Top border
     if (showBorder) {
       var borderWidth = max(textWidth + 4, (subtitle?.length ?? 0) + 6);
       if (borderWidth > width) borderWidth = width;
@@ -230,7 +197,6 @@ class BigText extends View {
         ..position = Position(bx, y++));
     }
 
-    // Main text lines
     for (var row = 0; row < charHeight && y < height - (showBorder ? 1 : 0); row++) {
       var line = lines[row].toString();
       if (line.length > contentWidth) {
@@ -244,7 +210,6 @@ class BigText extends View {
       }
 
       if (showBorder) {
-        // Add side borders
         var borderWidth = max(textWidth + 4, (subtitle?.length ?? 0) + 6);
         if (borderWidth > width) borderWidth = width;
         var bx = centered ? (width - borderWidth) ~/ 2 : 0;
@@ -266,16 +231,14 @@ class BigText extends View {
       y++;
     }
 
-    // Subtitle
     if (subtitle != null && y < height - (showBorder ? 1 : 0)) {
-      y++; // spacing
+      y++;
 
       if (showBorder) {
         var borderWidth = max(textWidth + 4, subtitle!.length + 6);
         if (borderWidth > width) borderWidth = width;
         var bx = centered ? (width - borderWidth) ~/ 2 : 0;
 
-        // Subtitle box inside main border
         var subBoxWidth = subtitle!.length + 4;
         var subX = centered ? (width - subBoxWidth) ~/ 2 : bx + 2;
 
@@ -318,7 +281,6 @@ class BigText extends View {
           ..position = Position(bx + borderWidth - 1, y));
         y++;
       } else {
-        // Simple subtitle without border
         var subX = centered ? (width - subtitle!.length) ~/ 2 : 0;
         text.add(Text(subtitle!)
           ..color = subtitleColor
@@ -327,7 +289,6 @@ class BigText extends View {
       }
     }
 
-    // Bottom border
     if (showBorder && y < height) {
       var borderWidth = max(textWidth + 4, (subtitle?.length ?? 0) + 6);
       if (borderWidth > width) borderWidth = width;
@@ -372,19 +333,6 @@ class BigText extends View {
 
     return gradient![index].lerp(gradient![index + 1], localT);
   }
-
-  _FontData _getFontData() {
-    switch (font) {
-      case BigTextFont.block:
-        return _blockFont;
-      case BigTextFont.slim:
-        return _slimFont;
-      case BigTextFont.chunky:
-        return _chunkyFont;
-      case BigTextFont.shadow:
-        return _shadowFont;
-    }
-  }
 }
 
 class _FontData {
@@ -394,11 +342,7 @@ class _FontData {
   _FontData(this.height, this.glyphs);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// SHADOW FONT - FIGlet-style 3D (6 lines high)
-// ═══════════════════════════════════════════════════════════════════════════
-
-final _shadowFont = _FontData(6, {
+final _fontShadow = _FontData(6, {
   'A': [
     ' █████╗ ',
     '██╔══██╗',
@@ -729,11 +673,7 @@ final _shadowFont = _FontData(6, {
   ],
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
-// BLOCK FONT (5 lines high)
-// ═══════════════════════════════════════════════════════════════════════════
-
-final _blockFont = _FontData(5, {
+final _fontBlock = _FontData(5, {
   'A': ['█████', '█   █', '█████', '█   █', '█   █'],
   'B': ['████ ', '█   █', '████ ', '█   █', '████ '],
   'C': ['█████', '█    ', '█    ', '█    ', '█████'],
@@ -776,11 +716,7 @@ final _blockFont = _FontData(5, {
   '-': ['     ', '     ', '█████', '     ', '     '],
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
-// SLIM FONT (5 lines high)
-// ═══════════════════════════════════════════════════════════════════════════
-
-final _slimFont = _FontData(5, {
+final _fontSlim = _FontData(5, {
   'A': ['╔═╗', '╠═╣', '║ ║', '║ ║', '╩ ╩'],
   'B': ['╔═╗', '╠═╣', '╠═╣', '║ ║', '╚═╝'],
   'C': ['╔══', '║  ', '║  ', '║  ', '╚══'],
@@ -810,11 +746,7 @@ final _slimFont = _FontData(5, {
   ' ': ['   ', '   ', '   ', '   ', '   '],
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
-// CHUNKY FONT (4 lines high)
-// ═══════════════════════════════════════════════════════════════════════════
-
-final _chunkyFont = _FontData(4, {
+final _fontChunky = _FontData(4, {
   'A': ['▄▀▀▄', '█▄▄█', '█  █', '▀  ▀'],
   'B': ['█▀▀▄', '█▄▄▀', '█  █', '▀▀▀ '],
   'C': ['▄▀▀▀', '█   ', '█   ', '▀▀▀▀'],

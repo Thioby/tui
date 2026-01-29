@@ -1,9 +1,57 @@
 part of tui;
 
+/// Navigation bar with Prev/Next buttons for PageView.
+class NavigationBar extends View {
+  final Page page;
+  String? prevLabel;
+  String nextLabel;
+
+  late Button? _btnPrev;
+  late Button _btnNext;
+
+  NavigationBar(
+    this.page, {
+    this.prevLabel = "← Wstecz",
+    this.nextLabel = "Dalej →",
+  }) {
+    _initBtns();
+  }
+
+  void _initBtns() {
+    if (prevLabel != null) {
+      _btnPrev = Button(prevLabel!, onPressed: _prev);
+      children.add(_btnPrev!);
+    } else {
+      _btnPrev = null;
+    }
+
+    _btnNext = Button(nextLabel, onPressed: _next);
+    children.add(_btnNext);
+  }
+
+  void _prev() {
+    page.pageView.goPrev();
+  }
+
+  void _next() {
+    page.pageView.goNext();
+  }
+
+  @override
+  void resizeChildren() {
+    int x = width;
+
+    x -= _btnNext.displayWidth;
+    _btnNext.resize(Size(_btnNext.displayWidth, 1), Position(x, 0));
+
+    if (_btnPrev != null) {
+      x -= _btnPrev!.displayWidth + 1;
+      _btnPrev!.resize(Size(_btnPrev!.displayWidth, 1), Position(x, 0));
+    }
+  }
+}
+
 /// A focusable button widget.
-///
-/// Renders as `[ Label ]` with highlight when focused.
-/// Calls [onPressed] when Enter is pressed while focused.
 class Button extends View {
   String label;
   void Function()? onPressed;
@@ -46,61 +94,5 @@ class Button extends View {
     return false;
   }
 
-  int get displayWidth => label.length + 4; // "[ " + label + " ]"
-}
-
-/// Navigation bar with Prev/Next buttons for PageView.
-///
-/// Buttons are right-aligned. Prev button is optional (pass null for prevLabel).
-class NavigationBar extends View {
-  final Page page;
-  String? prevLabel;
-  String nextLabel;
-
-  late Button? _prevButton;
-  late Button _nextButton;
-
-  NavigationBar(
-    this.page, {
-    this.prevLabel = "← Wstecz",
-    this.nextLabel = "Dalej →",
-  }) {
-    _setupButtons();
-  }
-
-  void _setupButtons() {
-    if (prevLabel != null) {
-      _prevButton = Button(prevLabel!, onPressed: _onPrev);
-      children.add(_prevButton!);
-    } else {
-      _prevButton = null;
-    }
-
-    _nextButton = Button(nextLabel, onPressed: _onNext);
-    children.add(_nextButton);
-  }
-
-  void _onPrev() {
-    page.pageView.goPrev();
-  }
-
-  void _onNext() {
-    page.pageView.goNext();
-  }
-
-  @override
-  void resizeChildren() {
-    // Right-align buttons
-    int x = width;
-
-    // Next button (rightmost)
-    x -= _nextButton.displayWidth;
-    _nextButton.resize(Size(_nextButton.displayWidth, 1), Position(x, 0));
-
-    // Prev button (if exists)
-    if (_prevButton != null) {
-      x -= _prevButton!.displayWidth + 1; // +1 for spacing
-      _prevButton!.resize(Size(_prevButton!.displayWidth, 1), Position(x, 0));
-    }
-  }
+  int get displayWidth => label.length + 4;
 }
