@@ -76,12 +76,12 @@ class FileBrowserWindow extends Window {
 
 void main() {
   print("File Browser");
-  print("─────────────────────────────────────");
+  print(BoxChars.lightH * 37);
   print("↑/↓       = navigate");
   print("←         = collapse folder");
   print("→         = expand folder");
   print("q         = quit");
-  print("─────────────────────────────────────");
+  print(BoxChars.lightH * 37);
   print("Starting in 2 seconds...");
   Future.delayed(Duration(seconds: 2), () {
     FileBrowserWindow().start();

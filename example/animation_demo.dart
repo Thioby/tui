@@ -157,14 +157,20 @@ class AnimationDemo extends Window {
     ));
   }
 
-  final _revealLines = [
-    '╔═══════════════════════════════╗',
-    '║   DART TUI ANIMATION SYSTEM   ║',
-    '║                               ║',
-    '║   Reveal animation demo       ║',
-    '║   Line by line effect         ║',
-    '╚═══════════════════════════════╝',
-  ];
+  List<String> get _revealLines {
+    final w = 33;
+    final content = [
+      '   DART TUI ANIMATION SYSTEM   ',
+      '                               ',
+      '   Reveal animation demo       ',
+      '   Line by line effect         ',
+    ];
+    return [
+      '${BoxChars.doubleTL}${BoxChars.doubleH * (w - 2)}${BoxChars.doubleTR}',
+      ...content.map((c) => '${BoxChars.doubleV}$c${BoxChars.doubleV}'),
+      '${BoxChars.doubleBL}${BoxChars.doubleH * (w - 2)}${BoxChars.doubleBR}',
+    ];
+  }
 
   void _runRevealLines() {
     statusText = 'Reveal lines (top to bottom)...';

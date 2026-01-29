@@ -59,7 +59,7 @@ class ResultPanel extends View {
     if (width < 2 || height < 1) return;
 
     var y = 0;
-    text.add(Text('─' * width)
+    text.add(Text(BoxChars.lightH * width)
       ..color = '8'
       ..position = Position(0, y++));
 
@@ -88,12 +88,12 @@ class ResultPanel extends View {
 
 void main() {
   print("Input Widget Demo");
-  print("─────────────────────────────────────");
+  print(BoxChars.lightH * 37);
   print("TAB         = next field");
   print("SHIFT+TAB   = previous field");
   print("ENTER       = submit current field");
   print("q/ESC       = quit");
-  print("─────────────────────────────────────");
+  print(BoxChars.lightH * 37);
   print("Starting in 1 second...");
   Future.delayed(Duration(seconds: 1), () {
     InputDemo().start();

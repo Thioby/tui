@@ -306,12 +306,12 @@ class _SpinnerShowcase extends View {
 
 void main() {
   print("TUI Widgets Demo");
-  print("─────────────────────────────────────");
+  print(BoxChars.lightH * 37);
   print("UP/DOWN     = navigate");
   print("ENTER       = select");
   print("ESC         = back / quit");
   print("q           = quit");
-  print("─────────────────────────────────────");
+  print(BoxChars.lightH * 37);
   print("Starting in 1 second...");
   Future.delayed(Duration(seconds: 1), () {
     WidgetsDemo().start();

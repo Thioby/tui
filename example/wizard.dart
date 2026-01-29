@@ -12,7 +12,7 @@ class ChoicePage extends Page {
   void update() {
     text = [
       Text(title)..color = '33',
-      Text('─' * 40)..position = Position(0, 1),
+      Text(BoxChars.lightH * 40)..position = Position(0, 1),
     ];
 
     for (var i = 0; i < options.length; i++) {
@@ -65,7 +65,7 @@ class ConfigPage extends Page {
   void update() {
     text = [
       Text('Configuration')..color = '33',
-      Text('─' * 40)..position = Position(0, 1),
+      Text(BoxChars.lightH * 40)..position = Position(0, 1),
     ];
 
     for (var i = 0; i < options.length; i++) {
@@ -121,7 +121,7 @@ class SummaryPage extends Page {
 
     text = [
       Text('Summary')..color = '32',
-      Text('═' * 40)..position = Position(0, 1),
+      Text(BoxChars.doubleH * 40)..position = Position(0, 1),
       Text('Environment: $env')..position = Position(2, 3),
       Text('Logging: ${config['logging'] ?? false}')..position = Position(2, 4),
       Text('Cache: ${config['cache'] ?? false}')..position = Position(2, 5),

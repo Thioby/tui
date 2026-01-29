@@ -288,7 +288,7 @@ class SplitDemo extends Window {
 
 void main() {
   print('SplitView Demo');
-  print('─────────────────────────────────────');
+  print(BoxChars.lightH * 37);
   print('TAB         = cycle focus between panels');
   print('SPACE       = toggle layout / pause progress');
   print('q           = quit');
@@ -296,7 +296,7 @@ void main() {
   print('In PROGRESS panel: SPACE/ENTER = pause');
   print('In LOG panel:      ↑/↓ = scroll, HOME/END');
   print('In COUNTER panel:  ↑/↓ = change counter');
-  print('─────────────────────────────────────');
+  print(BoxChars.lightH * 37);
   print('Starting in 2 seconds...');
   Future.delayed(Duration(seconds: 2), () {
     SplitDemo().start();

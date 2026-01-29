@@ -13,7 +13,7 @@ class ChoicePage extends Page {
   void update() {
     text = [
       Text(title)..color = '33',
-      Text('─' * 40)..position = Position(0, 1),
+      Text(BoxChars.lightH * 40)..position = Position(0, 1),
     ];
 
     for (var i = 0; i < options.length; i++) {
@@ -275,11 +275,11 @@ class SummaryPage extends Page {
     var buildData = pageView.getData<Map>(1) ?? {};
 
     text = [
-      Text('═══════════════════════════════════')..color = '32',
+      Text(BoxChars.doubleH * 35)..color = '32',
       Text('       Build Complete!')
         ..color = '32'
         ..position = Position(0, 1),
-      Text('═══════════════════════════════════')
+      Text(BoxChars.doubleH * 35)
         ..color = '32'
         ..position = Position(0, 2),
       Text('Target: $target')..position = Position(2, 4),
