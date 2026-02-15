@@ -41,13 +41,10 @@ enum SpinnerStyle {
 
 /// Animated loading indicator.
 ///
-/// Example:
-/// ```dart
-/// var spinner = Spinner(label: 'Loading...')
-///   ..start();
-/// // Later:
-/// spinner.stop();
-/// ```
+/// Frame advance is driven by the render loop via [render] when
+/// the spinner is part of the view tree. A fallback Timer ensures
+/// the animation also works when the spinner is used standalone
+/// (e.g. in `_SpinnerShowcase` where only [update] is called).
 class Spinner extends View {
   /// Label text displayed next to spinner.
   String? label;
@@ -58,7 +55,7 @@ class Spinner extends View {
   /// Animation style.
   SpinnerStyle style;
 
-  /// Animation speed in milliseconds.
+  /// Minimum milliseconds between frame changes.
   int interval;
 
   /// Color for the spinner (ANSI code).
@@ -72,13 +69,33 @@ class Spinner extends View {
 
   Timer? _timer;
   int _frame = 0;
+  DateTime _lastTick = DateTime.now();
+
+  /// Set to true once [render] is called — disables the fallback
+  /// timer since the render loop drives the animation.
+  bool _renderDriven = false;
 
   static const Map<SpinnerStyle, List<String>> _frames = {
     SpinnerStyle.dots: ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'],
     SpinnerStyle.dots2: ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷'],
     SpinnerStyle.circle: ['◐', '◓', '◑', '◒'],
     SpinnerStyle.circleHalf: ['◴', '◷', '◶', '◵'],
-    SpinnerStyle.line: ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█', '▇', '▆', '▅', '▄', '▃', '▂'],
+    SpinnerStyle.line: [
+      '▁',
+      '▂',
+      '▃',
+      '▄',
+      '▅',
+      '▆',
+      '▇',
+      '█',
+      '▇',
+      '▆',
+      '▅',
+      '▄',
+      '▃',
+      '▂'
+    ],
     SpinnerStyle.arrow: ['←', '↖', '↑', '↗', '→', '↘', '↓', '↙'],
     SpinnerStyle.square: ['▖', '▘', '▝', '▗'],
     SpinnerStyle.triangle: ['◢', '◣', '◤', '◥'],
@@ -104,19 +121,50 @@ class Spinner extends View {
     if (running) return;
     running = true;
     _frame = 0;
-    _timer = Timer.periodic(Duration(milliseconds: interval), (_) {
-      _frame++;
-      update();
-    });
+    _lastTick = DateTime.now();
+    _startTimer();
     update();
   }
 
   /// Stop the spinner animation.
   void stop() {
     running = false;
+    _stopTimer();
+    update();
+  }
+
+  void _startTimer() {
+    _stopTimer();
+    _timer = Timer.periodic(Duration(milliseconds: interval), (_) {
+      if (!running) return;
+      // Only tick from timer if render() is NOT driving us.
+      if (_renderDriven) return;
+      _advanceFrame();
+    });
+  }
+
+  void _stopTimer() {
     _timer?.cancel();
     _timer = null;
+  }
+
+  void _advanceFrame() {
+    _frame++;
+    _lastTick = DateTime.now();
     update();
+  }
+
+  @override
+  void render(Canvas canvas) {
+    _renderDriven = true;
+    // Advance frame if enough time has elapsed.
+    if (running) {
+      final now = DateTime.now();
+      if (now.difference(_lastTick).inMilliseconds >= interval) {
+        _advanceFrame();
+      }
+    }
+    super.render(canvas);
   }
 
   @override

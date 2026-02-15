@@ -149,5 +149,69 @@ void main() {
         expect(canvas.y, equals(1));
       });
     });
+
+    group('double-buffering', () {
+      test('hasWrites is false on fresh screen', () {
+        expect(screen.hasWrites, isFalse);
+      });
+
+      test('hasWrites is true after write', () {
+        screen.write(0, 0, 'A');
+        expect(screen.hasWrites, isTrue);
+      });
+
+      test('hasWrites resets after clear', () {
+        screen.write(0, 0, 'A');
+        screen.clear();
+        expect(screen.hasWrites, isFalse);
+      });
+
+      test('diff returns empty when buffers match', () {
+        // Both buffers start empty — diff should be empty.
+        expect(screen.diff(), equals(''));
+      });
+
+      test('diff returns ANSI-positioned lines for changed rows', () {
+        screen.write(0, 0, 'A');
+        final patch = screen.diff();
+        // Line 1 changed, expect ANSI cursor move + rendered line.
+        expect(patch, contains('\x1B[1;1H'));
+        expect(patch, contains('A'));
+      });
+
+      test('diff skips unchanged lines', () {
+        // Write only to row 2 (index 1).
+        screen.write(0, 1, 'B');
+        final patch = screen.diff();
+        // Should contain row 2 cursor move, not row 1.
+        expect(patch, contains('\x1B[2;1H'));
+        expect(patch, isNot(contains('\x1B[1;1H')));
+      });
+
+      test('swapBuffers makes diff return empty', () {
+        screen.write(0, 0, 'X');
+        screen.swapBuffers();
+        // After swap, front == back, diff should be empty.
+        expect(screen.diff(), equals(''));
+      });
+
+      test('clear + write + diff + swap cycle works', () {
+        // Frame 1: write A at (0,0).
+        screen.write(0, 0, 'A');
+        screen.swapBuffers();
+
+        // Frame 2: clear, write B at (0,0).
+        screen.clear();
+        screen.write(0, 0, 'B');
+        final patch = screen.diff();
+        expect(patch, contains('B'));
+        screen.swapBuffers();
+
+        // Frame 3: same content — no diff.
+        screen.clear();
+        screen.write(0, 0, 'B');
+        expect(screen.diff(), equals(''));
+      });
+    });
   });
 }

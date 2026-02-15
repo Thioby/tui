@@ -6,15 +6,18 @@ abstract class Easing {
 
   static double easeIn(double t) => t * t;
   static double easeOut(double t) => 1 - (1 - t) * (1 - t);
-  static double easeInOut(double t) => t < 0.5 ? 2 * t * t : 1 - pow(-2 * t + 2, 2).toDouble() / 2;
+  static double easeInOut(double t) =>
+      t < 0.5 ? 2 * t * t : 1 - pow(-2 * t + 2, 2).toDouble() / 2;
 
   static double easeInCubic(double t) => t * t * t;
   static double easeOutCubic(double t) => 1 - pow(1 - t, 3).toDouble();
-  static double easeInOutCubic(double t) => t < 0.5 ? 4 * t * t * t : 1 - pow(-2 * t + 2, 3).toDouble() / 2;
+  static double easeInOutCubic(double t) =>
+      t < 0.5 ? 4 * t * t * t : 1 - pow(-2 * t + 2, 3).toDouble() / 2;
 
   static double easeInElastic(double t) {
     if (t == 0 || t == 1) return t;
-    return -pow(2, 10 * t - 10).toDouble() * sin((t * 10 - 10.75) * (2 * pi / 3));
+    return -pow(2, 10 * t - 10).toDouble() *
+        sin((t * 10 - 10.75) * (2 * pi / 3));
   }
 
   static double easeOutElastic(double t) {
@@ -215,33 +218,45 @@ class Tween<T> {
 }
 
 /// Animation controller to manage multiple animations.
+///
+/// Two modes of operation:
+/// - **Self-ticking** (default): owns a `Timer.periodic` that calls
+///   [tick] automatically. Used when the controller lives outside
+///   the render tree (e.g. as a field on a Window subclass).
+/// - **Externally-ticked**: set `selfTick = false` and call [tick]
+///   manually from `render()`. Used by the [Animated] mixin and
+///   [AnimatedBigText] to stay synchronised with the frame clock.
 class AnimationController {
   final List<Animation> _animations = [];
   Timer? _timer;
-  int _fps = 30;
+  int _fps;
+  final bool selfTick;
 
   int get fps => _fps;
   set fps(int value) {
     _fps = value.clamp(1, 120);
-    if (_timer != null) {
-      _stop();
-      _start();
+    if (selfTick && _timer != null) {
+      _stopTimer();
+      _startTimer();
     }
   }
+
+  /// Whether there are running animations.
+  bool get hasAnimations => _animations.isNotEmpty;
+
+  AnimationController({int fps = 30, this.selfTick = true}) : _fps = fps;
 
   /// Add an animation.
   void add(Animation animation) {
     _animations.add(animation);
     animation.start();
-    _ensureRunning();
+    if (selfTick) _ensureRunning();
   }
 
   /// Remove an animation.
   void remove(Animation animation) {
     _animations.remove(animation);
-    if (_animations.isEmpty) {
-      _stop();
-    }
+    if (selfTick && _animations.isEmpty) _stopTimer();
   }
 
   /// Remove all animations.
@@ -250,27 +265,15 @@ class AnimationController {
       anim.stop();
     }
     _animations.clear();
-    _stop();
+    if (selfTick) _stopTimer();
   }
 
-  void _ensureRunning() {
-    if (_timer == null && _animations.isNotEmpty) {
-      _start();
-    }
-  }
+  /// Advance all animations by one frame.
+  ///
+  /// Returns true if any animation is still running.
+  bool tick() {
+    if (_animations.isEmpty) return false;
 
-  void _start() {
-    _timer = Timer.periodic(Duration(milliseconds: 1000 ~/ _fps), (_) {
-      _tick();
-    });
-  }
-
-  void _stop() {
-    _timer?.cancel();
-    _timer = null;
-  }
-
-  void _tick() {
     var completed = <Animation>[];
     for (var anim in _animations) {
       anim.update();
@@ -281,9 +284,24 @@ class AnimationController {
     for (var anim in completed) {
       _animations.remove(anim);
     }
-    if (_animations.isEmpty) {
-      _stop();
-    }
+    if (selfTick && _animations.isEmpty) _stopTimer();
+    return _animations.isNotEmpty;
+  }
+
+  void _ensureRunning() {
+    if (_timer == null && _animations.isNotEmpty) _startTimer();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(
+      Duration(milliseconds: 1000 ~/ _fps),
+      (_) => tick(),
+    );
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
   }
 }
 
@@ -441,7 +459,9 @@ class CascadeAnimation extends Animation {
     required this.onUpdate,
     this.itemDelay = const Duration(milliseconds: 100),
     super.onComplete,
-  }) : super(duration: Duration(milliseconds: items.length * itemDelay.inMilliseconds));
+  }) : super(
+            duration: Duration(
+                milliseconds: items.length * itemDelay.inMilliseconds));
 
   @override
   void update() {
@@ -515,7 +535,12 @@ class ParticleBurstAnimation extends Animation {
     required this.onUpdate,
     this.width = 50,
     this.particles = const ['✦', '✧', '★', '☆', '◆', '◇', '●', '○', '◈', '✴'],
-    this.colors = const [Colors.brightGreen, Colors.brightCyan, Colors.brightYellow, Colors.brightMagenta],
+    this.colors = const [
+      Colors.brightGreen,
+      Colors.brightCyan,
+      Colors.brightYellow,
+      Colors.brightMagenta
+    ],
     this.density = 0.15,
     Duration duration = const Duration(milliseconds: 500),
     super.onComplete,
@@ -584,7 +609,9 @@ class ScrollingBannerAnimation extends Animation {
     this.width = 40,
     this.iterations = 2,
     super.onComplete,
-  }) : super(duration: Duration(milliseconds: (text.length + width * 2) * 50 * iterations)) {
+  }) : super(
+            duration: Duration(
+                milliseconds: (text.length + width * 2) * 50 * iterations)) {
     _paddedText = '${'─' * width}$text${'─' * width}';
   }
 
@@ -603,16 +630,29 @@ class ScrollingBannerAnimation extends Animation {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Mixin that adds animation capabilities to a View.
+///
+/// Ticks the animation controller during [render], so animations
+/// advance in sync with the render loop — no independent timer.
 mixin Animated on View {
-  final AnimationController _animController = AnimationController();
+  final AnimationController _animController =
+      AnimationController(selfTick: false);
 
   AnimationController get animations => _animController;
 
+  @override
+  void render(Canvas canvas) {
+    _animController.tick();
+    super.render(canvas);
+  }
+
   /// Run a typewriter animation on text content.
-  void animateTypewriter(String text, {Duration? charDelay, void Function()? onComplete}) {
+  void animateTypewriter(String text,
+      {Duration? charDelay, void Function()? onComplete}) {
     var anim = TypewriterAnimation(
       text: text,
-      duration: charDelay != null ? Duration(milliseconds: text.length * charDelay.inMilliseconds) : null,
+      duration: charDelay != null
+          ? Duration(milliseconds: text.length * charDelay.inMilliseconds)
+          : null,
       onUpdate: (visible) {
         // Subclass should override to update view
       },
@@ -622,7 +662,8 @@ mixin Animated on View {
   }
 
   /// Run a glitch animation.
-  void animateGlitch(String text, {Duration? duration, void Function()? onComplete}) {
+  void animateGlitch(String text,
+      {Duration? duration, void Function()? onComplete}) {
     var anim = GlitchAnimation(
       text: text,
       duration: duration ?? const Duration(milliseconds: 500),
@@ -1113,13 +1154,15 @@ class BigTextAnimation extends Animation {
             if (_random.nextDouble() < progress * 0.6) {
               buf.write(line[i]);
             } else {
-              var matrixChar = _matrixChars[_random.nextInt(_matrixChars.length)];
+              var matrixChar =
+                  _matrixChars[_random.nextInt(_matrixChars.length)];
               buf.write('${Colors.green}$matrixChar${Colors.reset}');
             }
           } else {
             // Not yet revealed - dim matrix chars
             if (_random.nextDouble() < 0.3) {
-              var matrixChar = _matrixChars[_random.nextInt(_matrixChars.length)];
+              var matrixChar =
+                  _matrixChars[_random.nextInt(_matrixChars.length)];
               buf.write('${Colors.dim}$matrixChar${Colors.reset}');
             } else {
               buf.write(' ');
@@ -1151,7 +1194,7 @@ class BigTextAnimation extends Animation {
 /// Animated wrapper for BigText that plays reveal animation on start.
 class AnimatedBigText extends View {
   final BigText _bigText;
-  final AnimationController _controller = AnimationController()..fps = 60;
+  final AnimationController _controller = AnimationController(selfTick: false);
   final Duration lineDelay;
   final List<LineRevealConfig> lineStyles;
   final LineRevealConfig defaultStyle;
@@ -1170,7 +1213,11 @@ class AnimatedBigText extends View {
     this.lineStyles = const [],
     this.defaultStyle = const LineRevealConfig(),
     this.onComplete,
-  }) : _bigText = BigText(text, font: font, gradient: gradient, subtitle: subtitle, showBorder: showBorder);
+  }) : _bigText = BigText(text,
+            font: font,
+            gradient: gradient,
+            subtitle: subtitle,
+            showBorder: showBorder);
 
   /// Start the reveal animation.
   void startAnimation() {
@@ -1215,6 +1262,13 @@ class AnimatedBigText extends View {
   void resize(Size size, Position offset) {
     super.resize(size, offset);
     _bigText.resize(size, offset);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    // Tick the animation controller in sync with the render loop.
+    _controller.tick();
+    super.render(canvas);
   }
 
   @override
