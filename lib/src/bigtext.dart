@@ -109,7 +109,8 @@ class BigText extends View {
 
   bool centered = true;
 
-  BigText(this._txt, {
+  BigText(
+    this._txt, {
     this.font = BigTextFont.block,
     this.gradient,
     this.subtitle,
@@ -119,7 +120,8 @@ class BigText extends View {
     _txt = _txt.toUpperCase();
   }
 
-  static List<String> generateLines(String text, {BigTextFont font = BigTextFont.shadow, int letterSpacing = 1}) {
+  static List<String> generateLines(String text,
+      {BigTextFont font = BigTextFont.shadow, int letterSpacing = 1}) {
     text = text.toUpperCase();
     var fontData = _fontData(font);
     var charHeight = fontData.height;
@@ -190,14 +192,17 @@ class BigText extends View {
     if (showBorder) {
       var borderWidth = max(textWidth + 4, (subtitle?.length ?? 0) + 6);
       if (borderWidth > width) borderWidth = width;
-      var borderLine = '${BoxChars.doubleTL}${BoxChars.doubleH * (borderWidth - 2)}${BoxChars.doubleTR}';
+      var borderLine =
+          '${BoxChars.doubleTL}${BoxChars.doubleH * (borderWidth - 2)}${BoxChars.doubleTR}';
       var bx = centered ? (width - borderWidth) ~/ 2 : 0;
       text.add(Text(borderLine)
         ..color = borderColor
         ..position = Position(bx, y++));
     }
 
-    for (var row = 0; row < charHeight && y < height - (showBorder ? 1 : 0); row++) {
+    for (var row = 0;
+        row < charHeight && y < height - (showBorder ? 1 : 0);
+        row++) {
       var line = lines[row].toString();
       if (line.length > contentWidth) {
         line = line.substring(0, contentWidth);
@@ -245,7 +250,8 @@ class BigText extends View {
         text.add(Text(BoxChars.doubleV)
           ..color = borderColor
           ..position = Position(bx, y));
-        text.add(Text('${BoxChars.lightTL}${BoxChars.lightH * (subBoxWidth - 2)}${BoxChars.lightTR}')
+        text.add(Text(
+            '${BoxChars.lightTL}${BoxChars.lightH * (subBoxWidth - 2)}${BoxChars.lightTR}')
           ..color = subtitleColor
           ..position = Position(subX, y));
         text.add(Text(BoxChars.doubleV)
@@ -273,7 +279,8 @@ class BigText extends View {
         text.add(Text(BoxChars.doubleV)
           ..color = borderColor
           ..position = Position(bx, y));
-        text.add(Text('${BoxChars.lightBL}${BoxChars.lightH * (subBoxWidth - 2)}${BoxChars.lightBR}')
+        text.add(Text(
+            '${BoxChars.lightBL}${BoxChars.lightH * (subBoxWidth - 2)}${BoxChars.lightBR}')
           ..color = subtitleColor
           ..position = Position(subX, y));
         text.add(Text(BoxChars.doubleV)
@@ -292,7 +299,8 @@ class BigText extends View {
     if (showBorder && y < height) {
       var borderWidth = max(textWidth + 4, (subtitle?.length ?? 0) + 6);
       if (borderWidth > width) borderWidth = width;
-      var borderLine = '${BoxChars.doubleBL}${BoxChars.doubleH * (borderWidth - 2)}${BoxChars.doubleBR}';
+      var borderLine =
+          '${BoxChars.doubleBL}${BoxChars.doubleH * (borderWidth - 2)}${BoxChars.doubleBR}';
       var bx = centered ? (width - borderWidth) ~/ 2 : 0;
       text.add(Text(borderLine)
         ..color = borderColor
@@ -315,23 +323,25 @@ class BigText extends View {
   }
 
   RGB _getGradientColor(int position, int totalWidth) {
-    if (gradient == null || gradient!.isEmpty) {
-      return RGB(255, 255, 255);
-    }
-    if (gradient!.length == 1) {
-      return gradient!.first;
-    }
+    return interpolateGradient(gradient!, position, totalWidth);
+  }
+
+  /// Interpolate a color from [colors] at [position] of [totalWidth].
+  static RGB interpolateGradient(
+    List<RGB> colors,
+    int position,
+    int totalWidth,
+  ) {
+    if (colors.isEmpty) return RGB(255, 255, 255);
+    if (colors.length == 1) return colors.first;
 
     var t = totalWidth > 1 ? position / (totalWidth - 1) : 0.0;
-    var scaledT = t * (gradient!.length - 1);
+    var scaledT = t * (colors.length - 1);
     var index = scaledT.floor();
     var localT = scaledT - index;
 
-    if (index >= gradient!.length - 1) {
-      return gradient!.last;
-    }
-
-    return gradient![index].lerp(gradient![index + 1], localT);
+    if (index >= colors.length - 1) return colors.last;
+    return colors[index].lerp(colors[index + 1], localT);
   }
 }
 

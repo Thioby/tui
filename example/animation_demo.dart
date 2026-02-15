@@ -28,8 +28,8 @@ class AnimationDemo extends Window {
   ];
 
   AnimationDemo() {
-    controller = AnimationController()..fps = 60;
-    showFps = true;  // Enable FPS meter
+    controller = AnimationController(selfTick: false);
+    showFps = true;
   }
 
   @override
@@ -88,7 +88,8 @@ class AnimationDemo extends Window {
   void _runTypewriter() {
     statusText = 'Typewriter animation...';
     controller.add(TypewriterAnimation(
-      text: 'Hello, this is a typewriter effect! Each character appears one by one.',
+      text:
+          'Hello, this is a typewriter effect! Each character appears one by one.',
       duration: Duration(milliseconds: 2000),
       easing: Easing.linear,
       onUpdate: (visible) {
@@ -128,8 +129,8 @@ class AnimationDemo extends Window {
       onUpdate: (value) {
         var bright = value > 0.5;
         currentEffect = bright
-          ? '${Colors.brightRed}>>> ALERT <<<${Colors.reset}'
-          : '${Colors.dim}>>> ALERT <<<${Colors.reset}';
+            ? '${Colors.brightRed}>>> ALERT <<<${Colors.reset}'
+            : '${Colors.dim}>>> ALERT <<<${Colors.reset}';
       },
     ));
   }
@@ -181,7 +182,8 @@ class AnimationDemo extends Window {
       duration: Duration(milliseconds: 1500),
       easing: Easing.easeOut,
       onUpdate: (visible, _) {
-        currentEffect = visible.map((l) => '${Colors.cyan}$l${Colors.reset}').join('\n');
+        currentEffect =
+            visible.map((l) => '${Colors.cyan}$l${Colors.reset}').join('\n');
       },
       onComplete: () {
         statusText = 'Done! Press any key to continue.';
@@ -199,10 +201,10 @@ class AnimationDemo extends Window {
       onUpdate: (lines, opacity) {
         // Simulate fade with dim/bright colors
         var color = opacity < 0.3
-          ? Colors.dim
-          : opacity < 0.7
-            ? Colors.cyan
-            : Colors.brightCyan;
+            ? Colors.dim
+            : opacity < 0.7
+                ? Colors.cyan
+                : Colors.brightCyan;
         currentEffect = lines.map((l) => '$color$l${Colors.reset}').join('\n');
       },
       onComplete: () {
@@ -244,8 +246,8 @@ class AnimationDemo extends Window {
       repeatMode: RepeatMode.loop,
       onUpdate: (visible) {
         currentEffect = visible
-          ? '${Colors.brightGreen}█${Colors.reset} Cursor visible'
-          : '  Cursor hidden';
+            ? '${Colors.brightGreen}█${Colors.reset} Cursor visible'
+            : '  Cursor hidden';
       },
     ));
   }
@@ -258,7 +260,8 @@ class AnimationDemo extends Window {
       lineDelay: Duration(milliseconds: 150),
       defaultStyle: LineRevealConfig.typewriter,
       onUpdate: (rendered) {
-        currentEffect = rendered.map((l) => '${Colors.cyan}$l${Colors.reset}').join('\n');
+        currentEffect =
+            rendered.map((l) => '${Colors.cyan}$l${Colors.reset}').join('\n');
       },
       onComplete: () {
         statusText = 'Done! Press any key to continue.';
@@ -274,7 +277,9 @@ class AnimationDemo extends Window {
       lineDelay: Duration(milliseconds: 100),
       defaultStyle: LineRevealConfig.glitch,
       onUpdate: (rendered) {
-        currentEffect = rendered.map((l) => '${Colors.brightRed}$l${Colors.reset}').join('\n');
+        currentEffect = rendered
+            .map((l) => '${Colors.brightRed}$l${Colors.reset}')
+            .join('\n');
       },
       onComplete: () {
         statusText = 'Done! Press any key to continue.';
@@ -295,7 +300,10 @@ class AnimationDemo extends Window {
       },
       onComplete: () {
         // Pad lines to clear any leftover matrix chars
-        currentEffect = lines.map((l) => '${Colors.brightGreen}${l.padRight(maxLen + 10)}${Colors.reset}').join('\n');
+        currentEffect = lines
+            .map((l) =>
+                '${Colors.brightGreen}${l.padRight(maxLen + 10)}${Colors.reset}')
+            .join('\n');
         statusText = 'Done! Press any key to continue.';
       },
     ));
@@ -308,18 +316,26 @@ class AnimationDemo extends Window {
       lines: lines,
       lineDelay: Duration(milliseconds: 200),
       lineStyles: [
-        LineRevealConfig.glitch,      // Line 1: glitch
-        LineRevealConfig.matrix,      // Line 2: matrix
-        LineRevealConfig.typewriter,  // Line 3: typewriter
-        LineRevealConfig.fade,        // Line 4: fade
-        LineRevealConfig.glitch,      // Line 5: glitch
-        LineRevealConfig.matrix,      // Line 6: matrix
+        LineRevealConfig.glitch, // Line 1: glitch
+        LineRevealConfig.matrix, // Line 2: matrix
+        LineRevealConfig.typewriter, // Line 3: typewriter
+        LineRevealConfig.fade, // Line 4: fade
+        LineRevealConfig.glitch, // Line 5: glitch
+        LineRevealConfig.matrix, // Line 6: matrix
       ],
       onUpdate: (rendered) {
         var buf = StringBuffer();
-        var colors = [Colors.red, Colors.green, Colors.cyan, Colors.yellow, Colors.magenta, Colors.brightGreen];
+        var colors = [
+          Colors.red,
+          Colors.green,
+          Colors.cyan,
+          Colors.yellow,
+          Colors.magenta,
+          Colors.brightGreen
+        ];
         for (var i = 0; i < rendered.length; i++) {
-          buf.write('${colors[i % colors.length]}${rendered[i]}${Colors.reset}\n');
+          buf.write(
+              '${colors[i % colors.length]}${rendered[i]}${Colors.reset}\n');
         }
         currentEffect = buf.toString().trimRight();
       },
@@ -354,7 +370,8 @@ class AnimationDemo extends Window {
         currentEffect = line;
       },
       onComplete: () {
-        currentEffect = '${Colors.brightGreen}${Colors.bold}SUCCESS!${Colors.reset}';
+        currentEffect =
+            '${Colors.brightGreen}${Colors.bold}SUCCESS!${Colors.reset}';
         statusText = 'Done! Press any key to continue.';
       },
     ));
@@ -365,7 +382,8 @@ class AnimationDemo extends Window {
     controller.add(CountdownAnimation(
       from: 5,
       onUpdate: (remaining, display) {
-        currentEffect = '${Colors.brightCyan}${Colors.bold}$display${Colors.reset}';
+        currentEffect =
+            '${Colors.brightCyan}${Colors.bold}$display${Colors.reset}';
       },
       onComplete: () {
         statusText = 'Done! Press any key to continue.';
@@ -383,7 +401,8 @@ class AnimationDemo extends Window {
         currentEffect = '${Colors.cyan}$visible${Colors.reset}';
       },
       onComplete: () {
-        currentEffect = '${Colors.cyan}     DART TUI ANIMATION SYSTEM     ${Colors.reset}';
+        currentEffect =
+            '${Colors.cyan}     DART TUI ANIMATION SYSTEM     ${Colors.reset}';
         statusText = 'Done! Press any key to continue.';
       },
     ));
@@ -391,12 +410,18 @@ class AnimationDemo extends Window {
 
   void _runCascade() {
     statusText = 'Cascade animation...';
-    var items = ['Loading modules...', 'Initializing system...', 'Connecting to server...', 'Ready!'];
+    var items = [
+      'Loading modules...',
+      'Initializing system...',
+      'Connecting to server...',
+      'Ready!'
+    ];
     controller.add(CascadeAnimation(
       items: items,
       itemDelay: Duration(milliseconds: 500),
       onUpdate: (count, visible) {
-        currentEffect = visible.map((s) => '${Colors.green}> $s${Colors.reset}').join('\n');
+        currentEffect =
+            visible.map((s) => '${Colors.green}> $s${Colors.reset}').join('\n');
       },
       onComplete: () {
         statusText = 'Done! Press any key to continue.';
@@ -437,18 +462,26 @@ class AnimationDemo extends Window {
   }
 
   @override
+  void render(Canvas canvas) {
+    controller.tick();
+    super.render(canvas);
+  }
+
+  @override
   void update() {
     text = [];
     var y = 0;
 
     // Title
-    text.add(Text('${Colors.brightCyan}${Colors.bold}Animation System Demo${Colors.reset}')
+    text.add(Text(
+        '${Colors.brightCyan}${Colors.bold}Animation System Demo${Colors.reset}')
       ..position = Position(0, y++));
     text.add(Text('${BoxChars.lightH * 50}')..position = Position(0, y++));
     y++;
 
     // Menu
-    text.add(Text('${Colors.dim}Select animation:${Colors.reset}')..position = Position(0, y++));
+    text.add(Text('${Colors.dim}Select animation:${Colors.reset}')
+      ..position = Position(0, y++));
     for (var i = 0; i < demos.length; i++) {
       var prefix = i == demoIndex ? '${Colors.brightGreen}> ' : '  ';
       var suffix = i == demoIndex ? '${Colors.reset}' : '';
@@ -461,7 +494,8 @@ class AnimationDemo extends Window {
     y++;
 
     // Effect display area
-    text.add(Text('${Colors.dim}Output:${Colors.reset}')..position = Position(0, y++));
+    text.add(Text('${Colors.dim}Output:${Colors.reset}')
+      ..position = Position(0, y++));
 
     // Split effect by newlines for cascade
     var effectLines = currentEffect.split('\n');
@@ -474,7 +508,8 @@ class AnimationDemo extends Window {
 
     // Status
     text.add(Text('${BoxChars.lightH * 50}')..position = Position(0, y++));
-    text.add(Text('${Colors.dim}$statusText${Colors.reset}')..position = Position(0, y));
+    text.add(Text('${Colors.dim}$statusText${Colors.reset}')
+      ..position = Position(0, y));
   }
 }
 

@@ -1192,16 +1192,28 @@ class BigTextAnimation extends Animation {
 }
 
 /// Animated wrapper for BigText that plays reveal animation on start.
+///
+/// When [autoStart] is true (default) the animation begins
+/// automatically on the first [resize] with a non-zero size.
+/// You can also call [startAnimation] manually — if the widget
+/// has no size yet the start is deferred until the next [resize].
 class AnimatedBigText extends View {
   final BigText _bigText;
+  final BigTextFont _font;
+  final String _text;
   final AnimationController _controller = AnimationController(selfTick: false);
   final Duration lineDelay;
   final List<LineRevealConfig> lineStyles;
   final LineRevealConfig defaultStyle;
   final void Function()? onComplete;
 
+  /// Whether to start animating on first resize automatically.
+  final bool autoStart;
+
   List<String> _animatedLines = [];
   bool _animationComplete = false;
+  bool _started = false;
+  bool _pendingStart = false;
 
   AnimatedBigText(
     String text, {
@@ -1213,27 +1225,36 @@ class AnimatedBigText extends View {
     this.lineStyles = const [],
     this.defaultStyle = const LineRevealConfig(),
     this.onComplete,
-  }) : _bigText = BigText(text,
+    this.autoStart = true,
+  })  : _text = text,
+        _font = font,
+        _bigText = BigText(text,
             font: font,
             gradient: gradient,
             subtitle: subtitle,
             showBorder: showBorder);
 
   /// Start the reveal animation.
+  ///
+  /// Safe to call before the widget has been sized — the actual
+  /// start is deferred until [resize] provides a non-zero size.
   void startAnimation() {
+    if (width == 0 || height == 0) {
+      _pendingStart = true;
+      return;
+    }
+    _doStart();
+  }
+
+  void _doStart() {
+    _pendingStart = false;
+    _started = true;
     _animationComplete = false;
     _animatedLines = [];
+    _controller.clear();
 
-    // Get the rendered lines from BigText
-    _bigText.resize(size, position);
-    _bigText.update();
-
-    // Extract line strings from BigText's text elements
-    var lines = <String>[];
-    for (var t in _bigText.text) {
-      if (t.text != null) lines.add(t.text!);
-    }
-
+    // Generate lines statically — no dependency on widget size.
+    var lines = BigText.generateLines(_text, font: _font);
     if (lines.isEmpty) return;
 
     _controller.add(BigTextAnimation(
@@ -1256,32 +1277,58 @@ class AnimatedBigText extends View {
     _controller.clear();
     _animationComplete = true;
     _animatedLines = [];
+    _pendingStart = false;
   }
 
   @override
   void resize(Size size, Position offset) {
     super.resize(size, offset);
     _bigText.resize(size, offset);
+
+    if (width > 0 && height > 0) {
+      if (_pendingStart) {
+        _doStart();
+      } else if (autoStart && !_started) {
+        _doStart();
+      }
+    }
   }
 
   @override
   void render(Canvas canvas) {
-    // Tick the animation controller in sync with the render loop.
     _controller.tick();
+    update();
     super.render(canvas);
   }
 
   @override
   void update() {
     if (_animationComplete || _animatedLines.isEmpty) {
-      // Show final BigText
       _bigText.update();
       text = _bigText.text;
     } else {
-      // Show animated lines
       text = [];
+      final grad = _bigText.gradient;
       for (var i = 0; i < _animatedLines.length; i++) {
-        text.add(Text(_animatedLines[i])..position = Position(0, i));
+        var line = _animatedLines[i];
+        var x = _bigText.centered ? (width - line.length) ~/ 2 : 0;
+        if (x < 0) x = 0;
+
+        if (grad != null && grad.isNotEmpty) {
+          // Per-character gradient — same as BigText.
+          for (var c = 0; c < line.length; c++) {
+            var ch = line[c];
+            if (ch == ' ') continue;
+            var rgb = BigText.interpolateGradient(grad, c, line.length);
+            text.add(Text(ch)
+              ..color = rgb.toAnsi()
+              ..position = Position(x + c, i));
+          }
+        } else {
+          text.add(Text(line)
+            ..color = _bigText.color
+            ..position = Position(x, i));
+        }
       }
     }
   }

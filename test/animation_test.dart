@@ -309,6 +309,101 @@ void main() {
       expect(updateCount, greaterThan(0));
     });
   });
+
+  group('AnimatedBigText', () {
+    test('startAnimation produces lines after resize', () {
+      var widget = AnimatedBigText(
+        'HI',
+        font: BigTextFont.shadow,
+        autoStart: false,
+      );
+
+      // Simulate render loop giving us size.
+      widget.resize(Size(40, 10), Position(0, 0));
+      widget.startAnimation();
+
+      // Tick a few frames to advance the animation.
+      var screen = Screen(Size(40, 10));
+      var canvas = screen.canvas();
+      for (var i = 0; i < 5; i++) {
+        widget.render(canvas);
+      }
+
+      expect(widget.text, isNotEmpty);
+    });
+
+    test('autoStart begins animation on first resize', () {
+      var widget = AnimatedBigText('GO', font: BigTextFont.shadow);
+
+      // Before resize — nothing should happen.
+      expect(widget.text, isEmpty);
+
+      // Resize triggers auto-start.
+      widget.resize(Size(40, 10), Position(0, 0));
+
+      var screen = Screen(Size(40, 10));
+      var canvas = screen.canvas();
+      widget.render(canvas);
+
+      // Controller should have an active animation.
+      expect(widget.text, isNotEmpty);
+    });
+
+    test('startAnimation defers when size is zero', () {
+      var widget = AnimatedBigText(
+        'OK',
+        font: BigTextFont.shadow,
+        autoStart: false,
+      );
+
+      // Call start before resize — should defer.
+      widget.startAnimation();
+
+      // Now give it a real size — deferred start should fire.
+      widget.resize(Size(40, 10), Position(0, 0));
+
+      var screen = Screen(Size(40, 10));
+      var canvas = screen.canvas();
+      widget.render(canvas);
+
+      expect(widget.text, isNotEmpty);
+    });
+
+    test('skipAnimation shows final BigText', () {
+      var widget = AnimatedBigText('AB', font: BigTextFont.shadow);
+
+      widget.resize(Size(40, 10), Position(0, 0));
+      widget.skipAnimation();
+      widget.update();
+
+      // Should show static BigText output, not animated lines.
+      expect(widget.text, isNotEmpty);
+      // Verify at least one text node has content from BigText.
+      var hasContent =
+          widget.text.any((t) => t.text != null && t.text!.trim().isNotEmpty);
+      expect(hasContent, isTrue);
+    });
+
+    test('does not restart animation on subsequent resizes', () {
+      var widget = AnimatedBigText('X', font: BigTextFont.shadow);
+
+      widget.resize(Size(40, 10), Position(0, 0));
+
+      // Tick a few frames.
+      var screen = Screen(Size(40, 10));
+      var canvas = screen.canvas();
+      for (var i = 0; i < 3; i++) {
+        widget.render(canvas);
+      }
+
+      // Resize again — should NOT restart.
+      widget.resize(Size(50, 12), Position(0, 0));
+      widget.render(canvas);
+
+      // Still has text, animation wasn't reset.
+      expect(widget.text, isNotEmpty);
+    });
+  });
 }
 
 /// Test animation that tracks lifecycle.

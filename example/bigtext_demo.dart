@@ -2,7 +2,13 @@ import 'package:tui/tui.dart';
 
 class BigTextDemo extends Window {
   int currentPage = 0;
-  final pages = <String>['Fonts', 'Gradients', 'Borders', 'Showcase'];
+  final pages = <String>[
+    'Fonts',
+    'Gradients',
+    'Borders',
+    'Showcase',
+    'Animated'
+  ];
   late Frame mainFrame;
 
   BigTextDemo() {
@@ -13,7 +19,8 @@ class BigTextDemo extends Window {
   }
 
   void _showPage() {
-    mainFrame.title = 'BigText Demo - ${pages[currentPage]} [${currentPage + 1}/${pages.length}]';
+    mainFrame.title =
+        'BigText Demo - ${pages[currentPage]} [${currentPage + 1}/${pages.length}]';
 
     switch (pages[currentPage]) {
       case 'Fonts':
@@ -24,6 +31,8 @@ class BigTextDemo extends Window {
         _showBorders();
       case 'Showcase':
         _showShowcase();
+      case 'Animated':
+        _showAnimated();
     }
   }
 
@@ -128,6 +137,37 @@ class BigTextDemo extends Window {
     ];
   }
 
+  void _showAnimated() {
+    var typewriter = AnimatedBigText(
+      'HELLO',
+      font: BigTextFont.shadow,
+      gradient: Gradients.cyan,
+      defaultStyle: LineRevealConfig.typewriter,
+      lineDelay: Duration(milliseconds: 120),
+    );
+
+    var glitch = AnimatedBigText(
+      'GLITCH',
+      font: BigTextFont.shadow,
+      gradient: Gradients.fire,
+      defaultStyle: LineRevealConfig.glitch,
+      lineDelay: Duration(milliseconds: 100),
+    );
+
+    var matrix = AnimatedBigText(
+      'MATRIX',
+      font: BigTextFont.shadow,
+      gradient: Gradients.matrix,
+      defaultStyle: LineRevealConfig.matrix,
+      lineDelay: Duration(milliseconds: 150),
+    );
+
+    mainFrame.children = [
+      SplitView(horizontal: false, ratios: [1, 1, 1])
+        ..children = [typewriter, glitch, matrix],
+    ];
+  }
+
   @override
   bool onKey(String key) {
     if (key == 'q' || key == KeyCode.ESCAPE) {
@@ -166,6 +206,7 @@ void main() {
   print('  2. Gradients - rainbow, sunset, ocean, matrix, fire');
   print('  3. Borders  - with subtitle support');
   print('  4. Showcase - combined features');
+  print('  5. Animated - AnimatedBigText reveal effects');
   print('');
   print('Controls:');
   print('  LEFT/RIGHT or H/L = switch pages');
