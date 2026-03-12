@@ -8,6 +8,7 @@ A Dart library for building terminal user interfaces.
 - **Layout**: SplitView, Frame, Box
 - **BigText**: ASCII art banners with gradient support
 - **Animations**: Typewriter, glitch, matrix rain, shimmer, and more
+- **Audio**: Programmatic synthesis, melody DSL, SFX presets — no sound files needed
 - **Focus management**: Tab between focusable widgets
 - **60 FPS render loop** with optional FPS meter
 
@@ -181,6 +182,96 @@ class MyApp extends Window {
 }
 ```
 
+## Audio
+
+Programmatic audio synthesis — generate sounds from code, no files needed.
+
+```dart
+final audio = Audio();
+
+// Quick beep
+audio.beep();
+
+// SFX presets
+SFX.success.playOn(audio.channel('sfx'));
+SFX.coin.playOn(audio.channel('sfx'));
+```
+
+### Melody builder
+
+```dart
+final melody = Melody(bpm: 120, waveform: Waveform.square)
+  ..note(Note.C4, Dur.quarter)
+  ..note(Note.E4, Dur.quarter)
+  ..note(Note.G4, Dur.half)
+  ..rest(Dur.quarter)
+  ..note(Note.C5, Dur.whole);
+
+audio.channel('music').playMelody(melody);
+```
+
+### Melody DSL
+
+Compact string notation for quick melodies:
+
+```dart
+audio.channel('music').play(
+  'E4.q E4.q F4.q G4.q | G4.q F4.q E4.q D4.q | C4.q C4.q D4.q E4.q | E4.dq D4.e D4.h',
+  bpm: 120,
+);
+```
+
+Note format: `{Name}{Octave}.{Duration}` — e.g. `C4.q`, `Fs5.e`, `R.h` (rest)
+
+Durations: `w` whole, `h` half, `q` quarter, `e` eighth, `s` sixteenth, `t` triplet, `d` prefix for dotted (`dh`, `dq`, `de`)
+
+### Waveforms and envelopes
+
+```dart
+// 5 waveform types
+audio.channel('sfx').tone(
+  frequency: Note.A4,
+  waveform: Waveform.sawtooth,  // sine, square, triangle, sawtooth, noise
+  duration: 0.5,
+);
+
+// Custom ADSR envelope
+final staccato = Envelope(attack: 0.005, decay: 0.1, sustain: 0.0, release: 0.01);
+audio.channel('sfx').tone(frequency: Note.C5, envelope: staccato);
+```
+
+### Channels
+
+Named channels — each plays one sound at a time (new replaces old):
+
+```dart
+audio.channel('sfx');    // sound effects
+audio.channel('music');  // background melody
+audio.channel('ui');     // UI feedback
+audio.muted = true;      // mute everything
+```
+
+### SFX presets
+
+`beep`, `click`, `success`, `error`, `powerUp`, `explosion`, `coin`, `jump`
+
+### Low-level synthesis
+
+```dart
+// Generate raw samples
+final samples = Synthesizer.tone(frequency: 440.0, duration: 0.5, waveform: Waveform.sine);
+
+// Mix multiple buffers into a chord
+final chord = Synthesizer.mix([
+  Synthesizer.tone(frequency: Note.C4, duration: 1.0, volume: 0.5),
+  Synthesizer.tone(frequency: Note.E4, duration: 1.0, volume: 0.5),
+  Synthesizer.tone(frequency: Note.G4, duration: 1.0, volume: 0.5),
+]);
+
+// Encode to WAV
+final wav = WavWriter.encode(chord);
+```
+
 ## Running the demos
 
 ```bash
@@ -188,6 +279,7 @@ dart run example/widgets_demo.dart
 dart run example/animation_demo.dart
 dart run example/split_view.dart
 dart run example/bigtext_demo.dart
+dart run example/audio_demo.dart
 ```
 
 ## License
