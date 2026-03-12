@@ -5,6 +5,7 @@ import 'dart:math';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:collection';
+import 'dart:typed_data';
 
 part 'src/screen.dart';
 part 'src/canvas.dart';
@@ -29,6 +30,13 @@ part 'src/spinner.dart';
 part 'src/table.dart';
 part 'src/bigtext.dart';
 part 'src/animation.dart';
+part 'src/audio/notes.dart';
+part 'src/audio/wav_writer.dart';
+part 'src/audio/synthesizer.dart';
+part 'src/audio/player.dart';
+part 'src/audio/melody.dart';
+part 'src/audio/channel.dart';
+part 'src/audio/presets.dart';
 
 class Size {
   int width;
