@@ -60,16 +60,16 @@ class Envelope {
 
     final releaseStart = duration - release;
 
-    // Attack: ramp 0 → 1
+    // Attack: ramp 0 -> 1
     if (t < attack) return attack == 0 ? 1.0 : t / attack;
 
-    // Decay: ramp 1 → sustain
+    // Decay: ramp 1 -> sustain
     if (t < attack + decay) {
       final p = (t - attack) / (decay == 0 ? 1.0 : decay);
       return 1.0 - (1.0 - sustain) * p;
     }
 
-    // Release: ramp sustain → 0
+    // Release: ramp sustain -> 0
     if (t >= releaseStart && releaseStart >= attack + decay) {
       final p = release == 0 ? 1.0 : (t - releaseStart) / release;
       return sustain * (1.0 - p.clamp(0.0, 1.0));
@@ -81,6 +81,11 @@ class Envelope {
 }
 
 abstract class Synthesizer {
+  /// Generate a single tone with optional [vibrato] and [timbre].
+  ///
+  /// When [timbre] is provided, uses additive synthesis (harmonic series)
+  /// instead of the raw [waveform]. When [vibrato] is provided, modulates
+  /// pitch with a low-frequency oscillator.
   static Float64List tone({
     required double frequency,
     required double duration,
@@ -88,9 +93,17 @@ abstract class Synthesizer {
     Envelope? envelope,
     double volume = 1.0,
     int sampleRate = 44100,
+    Vibrato? vibrato,
+    Timbre? timbre,
   }) {
     envelope ??= const Envelope.preset();
-    final raw = waveform.generate(frequency, duration, sampleRate);
+
+    // Timbre (additive synthesis) takes priority over basic waveform
+    final raw = timbre != null
+        ? timbre.generate(frequency, duration, sampleRate, vibrato: vibrato)
+        : _generateWithVibrato(
+            waveform, frequency, duration, sampleRate, vibrato);
+
     final length = raw.length;
     final output = Float64List(length);
 
@@ -100,6 +113,50 @@ abstract class Synthesizer {
       output[i] = (raw[i] * amp * volume).clamp(-1.0, 1.0);
     }
     return output;
+  }
+
+  /// Generate waveform samples with optional vibrato modulation.
+  ///
+  /// When vibrato is null or noise waveform, falls back to plain generation.
+  /// Otherwise uses phase accumulation for smooth frequency modulation.
+  static Float64List _generateWithVibrato(
+    Waveform waveform,
+    double frequency,
+    double duration,
+    int sampleRate,
+    Vibrato? vibrato,
+  ) {
+    if (vibrato == null || vibrato.depth == 0 || waveform == Waveform.noise) {
+      return waveform.generate(frequency, duration, sampleRate);
+    }
+
+    final length = (duration * sampleRate).round();
+    final samples = Float64List(length);
+    var phase = 0.0;
+
+    for (var i = 0; i < length; i++) {
+      final t = i / sampleRate;
+      final freq = vibrato.frequencyAt(t, frequency);
+
+      switch (waveform) {
+        case Waveform.sine:
+          samples[i] = sin(2 * pi * phase);
+        case Waveform.square:
+          samples[i] = (phase % 1.0) < 0.5 ? 1.0 : -1.0;
+        case Waveform.triangle:
+          final p = phase % 1.0;
+          samples[i] = p < 0.5 ? -1.0 + 4.0 * p : 3.0 - 4.0 * p;
+        case Waveform.sawtooth:
+          samples[i] = 2.0 * (phase % 1.0) - 1.0;
+        case Waveform.noise:
+          break; // unreachable — handled above
+      }
+
+      phase += freq / sampleRate;
+      phase %= 1.0;
+    }
+
+    return samples;
   }
 
   /// Additively mix multiple buffers, clamped to [-1, 1].

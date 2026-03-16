@@ -31,10 +31,17 @@ part 'src/table.dart';
 part 'src/bigtext.dart';
 part 'src/animation.dart';
 part 'src/audio/notes.dart';
+part 'src/audio/vibrato.dart';
+part 'src/audio/timbre.dart';
+part 'src/audio/stereo.dart';
+part 'src/audio/reverb.dart';
+part 'src/audio/tempo_map.dart';
+part 'src/audio/articulation.dart';
 part 'src/audio/wav_writer.dart';
 part 'src/audio/synthesizer.dart';
 part 'src/audio/player.dart';
 part 'src/audio/melody.dart';
+part 'src/audio/ornaments.dart';
 part 'src/audio/channel.dart';
 part 'src/audio/presets.dart';
 

@@ -31,12 +31,14 @@ void main() {
     test('square wave values are exactly +1 or -1', () {
       final samples = Waveform.square.generate(frequency, duration, sampleRate);
       for (final s in samples) {
-        expect(s == 1.0 || s == -1.0, isTrue, reason: 'Square wave sample should be +1 or -1, got $s');
+        expect(s == 1.0 || s == -1.0, isTrue,
+            reason: 'Square wave sample should be +1 or -1, got $s');
       }
     });
 
     test('triangle produces correct range and length', () {
-      final samples = Waveform.triangle.generate(frequency, duration, sampleRate);
+      final samples =
+          Waveform.triangle.generate(frequency, duration, sampleRate);
       expect(samples.length, expectedLength);
       for (final s in samples) {
         expect(s, greaterThanOrEqualTo(-1.0));
@@ -47,20 +49,23 @@ void main() {
     test('triangle is symmetric', () {
       // Generate exactly one period so symmetry is clean.
       final onePeriodDuration = 1.0 / frequency;
-      final samples = Waveform.triangle.generate(frequency, onePeriodDuration, sampleRate);
+      final samples =
+          Waveform.triangle.generate(frequency, onePeriodDuration, sampleRate);
       final n = samples.length;
       final half = n ~/ 2;
       // First half ramps up, second half ramps down — mirror symmetry.
       for (var i = 1; i < half; i++) {
         final mirrorIndex = n - i;
         if (mirrorIndex < n) {
-          expect(samples[i], closeTo(samples[mirrorIndex], 0.05), reason: 'Triangle should be symmetric at index $i');
+          expect(samples[i], closeTo(samples[mirrorIndex], 0.05),
+              reason: 'Triangle should be symmetric at index $i');
         }
       }
     });
 
     test('sawtooth produces correct range and length', () {
-      final samples = Waveform.sawtooth.generate(frequency, duration, sampleRate);
+      final samples =
+          Waveform.sawtooth.generate(frequency, duration, sampleRate);
       expect(samples.length, expectedLength);
       for (final s in samples) {
         expect(s, greaterThanOrEqualTo(-1.0));
@@ -71,7 +76,8 @@ void main() {
     test('sawtooth ramps correctly within a period', () {
       // Generate one period.
       final onePeriodDuration = 1.0 / frequency;
-      final samples = Waveform.sawtooth.generate(frequency, onePeriodDuration, sampleRate);
+      final samples =
+          Waveform.sawtooth.generate(frequency, onePeriodDuration, sampleRate);
       // Samples should generally increase across the period.
       // Check that the first sample is near -1 and the last is near +1.
       expect(samples.first, closeTo(-1.0, 0.05));
@@ -91,7 +97,8 @@ void main() {
       final samples = Waveform.noise.generate(frequency, 0.5, sampleRate);
       // Check there is variance — not all the same value.
       final unique = samples.toSet();
-      expect(unique.length, greaterThan(1), reason: 'Noise should produce varied values');
+      expect(unique.length, greaterThan(1),
+          reason: 'Noise should produce varied values');
       // Check spread: should have positive and negative values.
       expect(samples.any((s) => s > 0), isTrue);
       expect(samples.any((s) => s < 0), isTrue);
@@ -186,6 +193,109 @@ void main() {
     test('mix of empty list returns empty buffer', () {
       final result = Synthesizer.mix([]);
       expect(result.length, 0);
+    });
+  });
+
+  group('Synthesizer with vibrato', () {
+    test('tone with vibrato produces non-silent output', () {
+      final samples = Synthesizer.tone(
+        frequency: 440,
+        duration: 0.3,
+        vibrato: Vibrato.violin,
+      );
+      expect(samples.length, greaterThan(0));
+      expect(samples.any((s) => s != 0.0), isTrue);
+    });
+
+    test('tone with vibrato differs from without', () {
+      final withVib = Synthesizer.tone(
+        frequency: 440,
+        duration: 0.5,
+        vibrato: const Vibrato(rate: 6.0, depth: 30.0, delay: 0.0),
+      );
+      final without = Synthesizer.tone(frequency: 440, duration: 0.5);
+      var diffCount = 0;
+      for (var i = 0; i < withVib.length; i++) {
+        if ((withVib[i] - without[i]).abs() > 0.001) diffCount++;
+      }
+      expect(diffCount, greaterThan(0));
+    });
+
+    test('vibrato with all waveforms produces valid output', () {
+      for (final wave in [
+        Waveform.sine,
+        Waveform.square,
+        Waveform.triangle,
+        Waveform.sawtooth,
+      ]) {
+        final samples = Synthesizer.tone(
+          frequency: 440,
+          duration: 0.2,
+          waveform: wave,
+          vibrato: Vibrato.violin,
+        );
+        for (final s in samples) {
+          expect(s, greaterThanOrEqualTo(-1.0));
+          expect(s, lessThanOrEqualTo(1.0));
+        }
+      }
+    });
+
+    test('noise waveform ignores vibrato', () {
+      final withVib = Synthesizer.tone(
+        frequency: 440,
+        duration: 0.1,
+        waveform: Waveform.noise,
+        vibrato: Vibrato.violin,
+      );
+      expect(withVib.length, greaterThan(0));
+    });
+  });
+
+  group('Synthesizer with timbre', () {
+    test('tone with timbre produces non-silent output', () {
+      final samples = Synthesizer.tone(
+        frequency: 440,
+        duration: 0.2,
+        timbre: Timbre.violin,
+      );
+      expect(samples.length, greaterThan(0));
+      expect(samples.any((s) => s != 0.0), isTrue);
+    });
+
+    test('tone with timbre and vibrato combined', () {
+      final samples = Synthesizer.tone(
+        frequency: 440,
+        duration: 0.3,
+        timbre: Timbre.cello,
+        vibrato: Vibrato.cello,
+      );
+      expect(samples.length, greaterThan(0));
+      for (final s in samples) {
+        expect(s, greaterThanOrEqualTo(-1.0));
+        expect(s, lessThanOrEqualTo(1.0));
+      }
+    });
+
+    test('timbre overrides waveform parameter', () {
+      // With timbre, the waveform param should be ignored
+      final withTimbre = Synthesizer.tone(
+        frequency: 440,
+        duration: 0.1,
+        waveform: Waveform.square,
+        timbre: Timbre.pure,
+      );
+      final sine = Synthesizer.tone(
+        frequency: 440,
+        duration: 0.1,
+        waveform: Waveform.sine,
+      );
+      // Pure timbre should be close to sine, not square
+      var closeToSine = 0;
+      for (var i = 0; i < withTimbre.length; i++) {
+        if ((withTimbre[i] - sine[i]).abs() < 0.1) closeToSine++;
+      }
+      expect(closeToSine / withTimbre.length, greaterThan(0.8));
     });
   });
 }

@@ -206,5 +206,197 @@ void main() {
         throwsA(isA<FormatException>()),
       );
     });
+
+    test('parses dynamics suffix @ff', () {
+      final melody = Melody.parse('C4.q@ff D4.q@pp');
+      expect(melody.events, hasLength(2));
+      final c = melody.events[0] as NoteEvent;
+      final d = melody.events[1] as NoteEvent;
+      expect(c.volume, equals(1.0));
+      expect(d.volume, equals(0.3));
+    });
+
+    test('parses all dynamic levels', () {
+      final melody = Melody.parse(
+        'C4.q@ppp C4.q@pp C4.q@p C4.q@mp C4.q@mf C4.q@f C4.q@ff',
+      );
+      final volumes =
+          melody.events.cast<NoteEvent>().map((e) => e.volume).toList();
+      expect(volumes, equals([0.15, 0.3, 0.45, 0.6, 0.75, 0.88, 1.0]));
+    });
+
+    test('notes without dynamics have null volume', () {
+      final melody = Melody.parse('C4.q D4.q@mf E4.q');
+      final c = melody.events[0] as NoteEvent;
+      final d = melody.events[1] as NoteEvent;
+      final e = melody.events[2] as NoteEvent;
+      expect(c.volume, isNull);
+      expect(d.volume, equals(0.75));
+      expect(e.volume, isNull);
+    });
+
+    test('throws FormatException on unknown dynamics', () {
+      expect(
+        () => Melody.parse('C4.q@xyz'),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('dynamics work with rests (rest ignores @)', () {
+      // Rests don't have dynamics — only notes do
+      final melody = Melody.parse('C4.q@ff R.q C4.q@pp');
+      expect(melody.events, hasLength(3));
+      expect(melody.events[1], isA<RestEvent>());
+    });
+
+    test('parse passes vibrato and timbre to melody', () {
+      final melody = Melody.parse(
+        'C4.q',
+        vibrato: Vibrato.violin,
+        timbre: Timbre.violin,
+      );
+      expect(melody.vibrato, equals(Vibrato.violin));
+      expect(melody.timbre, equals(Timbre.violin));
+    });
+  });
+
+  group('Melody per-note dynamics', () {
+    test('note with explicit volume stores it', () {
+      final melody = Melody();
+      melody.note(440.0, 1.0, volume: 0.5);
+      final event = melody.events.first as NoteEvent;
+      expect(event.volume, equals(0.5));
+    });
+
+    test('note without volume has null volume', () {
+      final melody = Melody();
+      melody.note(440.0, 1.0);
+      final event = melody.events.first as NoteEvent;
+      expect(event.volume, isNull);
+    });
+
+    test('per-note volume affects sample amplitude', () {
+      final loud = Melody(bpm: 120, volume: 1.0);
+      loud.note(440.0, 1.0, volume: 1.0);
+      final loudSamples = loud.toSamples();
+
+      final quiet = Melody(bpm: 120, volume: 1.0);
+      quiet.note(440.0, 1.0, volume: 0.3);
+      final quietSamples = quiet.toSamples();
+
+      // Peak of quiet should be less than peak of loud
+      var loudPeak = 0.0;
+      var quietPeak = 0.0;
+      for (final s in loudSamples) {
+        if (s.abs() > loudPeak) loudPeak = s.abs();
+      }
+      for (final s in quietSamples) {
+        if (s.abs() > quietPeak) quietPeak = s.abs();
+      }
+      expect(quietPeak, lessThan(loudPeak));
+    });
+  });
+
+  group('Melody legato ties', () {
+    test('NoteEvent stores tied flag', () {
+      final event = NoteEvent(440.0, 1.0, Waveform.sine, tied: true);
+      expect(event.tied, isTrue);
+    });
+
+    test('NoteEvent tied defaults to false', () {
+      final event = NoteEvent(440.0, 1.0, Waveform.sine);
+      expect(event.tied, isFalse);
+    });
+
+    test('note() accepts tied parameter', () {
+      final melody = Melody();
+      melody.note(440.0, 1.0, tied: true);
+      final event = melody.events.first as NoteEvent;
+      expect(event.tied, isTrue);
+    });
+
+    test('tied notes produce continuous audio', () {
+      // Two tied notes should blend smoothly
+      final tied = Melody(bpm: 120);
+      tied.note(440.0, 1.0, tied: true);
+      tied.note(440.0, 1.0);
+      final samples = tied.toSamples(sampleRate: 8000);
+      expect(samples.length, greaterThan(0));
+      expect(samples.any((s) => s != 0.0), isTrue);
+    });
+
+    test('DSL C4.q_ parses tie', () {
+      final melody = Melody.parse('C4.q_ C4.q');
+      expect(melody.events, hasLength(2));
+      final first = melody.events[0] as NoteEvent;
+      final second = melody.events[1] as NoteEvent;
+      expect(first.tied, isTrue);
+      expect(second.tied, isFalse);
+    });
+
+    test('DSL multiple ties: C4.q_ C4.q_ C4.q', () {
+      final melody = Melody.parse('C4.q_ C4.q_ C4.q');
+      expect(melody.events, hasLength(3));
+      expect((melody.events[0] as NoteEvent).tied, isTrue);
+      expect((melody.events[1] as NoteEvent).tied, isTrue);
+      expect((melody.events[2] as NoteEvent).tied, isFalse);
+    });
+
+    test('DSL tie with dynamics: C4.q@mf_', () {
+      final melody = Melody.parse('C4.q@mf_ C4.q');
+      final first = melody.events[0] as NoteEvent;
+      expect(first.tied, isTrue);
+      expect(first.volume, equals(0.75));
+    });
+
+    test('DSL tie with articulation: C4.q:tn_', () {
+      final melody = Melody.parse('C4.q:tn_ C4.q');
+      final first = melody.events[0] as NoteEvent;
+      expect(first.tied, isTrue);
+      expect(first.articulation, equals(Articulation.tenuto));
+    });
+  });
+
+  group('Melody DSL combined suffixes', () {
+    test('dynamics + articulation + tie: C4.q@ff:st_', () {
+      final melody = Melody.parse('C4.q@ff:st_ C4.q');
+      final event = melody.events[0] as NoteEvent;
+      expect(event.volume, equals(1.0));
+      expect(event.articulation, equals(Articulation.staccato));
+      expect(event.tied, isTrue);
+    });
+
+    test('mixed notes preserve correct parsing', () {
+      final melody = Melody.parse('C4.q@ff E4.e:pz G4.h_ G4.h');
+      expect(melody.events, hasLength(4));
+      final c = melody.events[0] as NoteEvent;
+      final e = melody.events[1] as NoteEvent;
+      final g1 = melody.events[2] as NoteEvent;
+      final g2 = melody.events[3] as NoteEvent;
+      expect(c.volume, equals(1.0));
+      expect(c.articulation, isNull);
+      expect(c.tied, isFalse);
+      expect(e.articulation, equals(Articulation.pizzicato));
+      expect(g1.tied, isTrue);
+      expect(g2.tied, isFalse);
+    });
+  });
+
+  group('Melody with vibrato/timbre', () {
+    test('toSamples with vibrato produces valid output', () {
+      final melody = Melody(bpm: 120, vibrato: Vibrato.violin);
+      melody.note(440.0, 2.0);
+      final samples = melody.toSamples();
+      expect(samples.length, greaterThan(0));
+      expect(samples.any((s) => s != 0.0), isTrue);
+    });
+
+    test('toSamples with timbre produces valid output', () {
+      final melody = Melody(bpm: 120, timbre: Timbre.cello);
+      melody.note(220.0, 2.0);
+      final samples = melody.toSamples();
+      expect(samples.length, greaterThan(0));
+      expect(samples.any((s) => s != 0.0), isTrue);
+    });
   });
 }
