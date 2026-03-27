@@ -18,11 +18,26 @@ mixin FocusManager {
     if (!view.focusable) return;
     if (_focused == view) return;
 
-    _focused?.focused = false;
-    _focused?.onBlur();
+    var oldFrames = _ancestorFrames(_focused);
+    var oldFocused = _focused;
 
+    // Update view state first
+    _focused?.focused = false;
     _focused = view;
     view.focused = true;
+
+    // Update frame state
+    var newFrames = _ancestorFrames(view);
+
+    for (var frame in oldFrames) {
+      if (!newFrames.contains(frame)) frame.focused = false;
+    }
+    for (var frame in newFrames) {
+      if (!oldFrames.contains(frame)) frame.focused = true;
+    }
+
+    // Fire callbacks last (all state is now consistent)
+    oldFocused?.onBlur();
     view.onFocus();
   }
 
@@ -59,5 +74,15 @@ mixin FocusManager {
       return true;
     }
     return false;
+  }
+
+  Set<Frame> _ancestorFrames(View? view) {
+    var frames = <Frame>{};
+    var current = view?.parent;
+    while (current != null) {
+      if (current is Frame) frames.add(current);
+      current = current.parent;
+    }
+    return frames;
   }
 }

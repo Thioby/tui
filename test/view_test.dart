@@ -56,6 +56,53 @@ void main() {
         expect(view.hasChildren, isTrue);
       });
     });
+
+    group('parent reference', () {
+      test('parent is null by default', () {
+        var view = TestView();
+        expect(view.parent, isNull);
+      });
+
+      test('resize sets parent on children', () {
+        var parent = TestView();
+        var child1 = TestView();
+        var child2 = TestView();
+        parent.children = [child1, child2];
+
+        parent.resize(Size(80, 40), Position(0, 0));
+
+        expect(child1.parent, same(parent));
+        expect(child2.parent, same(parent));
+      });
+
+      test('resize updates parent when children change', () {
+        var parent1 = TestView();
+        var parent2 = TestView();
+        var child = TestView();
+
+        parent1.children = [child];
+        parent1.resize(Size(80, 40), Position(0, 0));
+        expect(child.parent, same(parent1));
+
+        parent2.children = [child];
+        parent2.resize(Size(80, 40), Position(0, 0));
+        expect(child.parent, same(parent2));
+      });
+
+      test('nested resize sets parent chain', () {
+        var grandparent = TestView();
+        var parent = TestView();
+        var child = TestView();
+
+        parent.children = [child];
+        grandparent.children = [parent];
+
+        grandparent.resize(Size(80, 40), Position(0, 0));
+
+        expect(parent.parent, same(grandparent));
+        expect(child.parent, same(parent));
+      });
+    });
   });
 
   group('SplitView', () {

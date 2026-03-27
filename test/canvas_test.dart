@@ -106,11 +106,11 @@ void main() {
     });
 
     group('bounds safety with offset', () {
-      test('negative coordinates with positive offset still work', () {
+      test('negative local coordinates are clipped', () {
         var offsetCanvas = screen.canvas(Size(10, 5), Position(5, 5));
-        // Writing at -2,-2 would be 3,3 on screen - valid
         offsetCanvas.write(-2, -2, 'V');
-        expect(screen.stringAt(3, 3), equals('V'));
+        // Negative local coords should be rejected
+        expect(screen.stringAt(3, 3), equals(''));
       });
 
       test('out of screen bounds is handled gracefully', () {
@@ -119,6 +119,109 @@ void main() {
         offsetCanvas.write(5, 5, 'X');
         // Should not throw
         expect(screen.occluded(19, 9), isFalse);
+      });
+    });
+
+    group('clipping', () {
+      test('rejects write at negative local x', () {
+        var child = screen.canvas(Size(10, 5), Position(5, 5));
+        child.write(-1, 0, 'X');
+        expect(screen.stringAt(4, 5), equals(''));
+      });
+
+      test('rejects write at negative local y', () {
+        var child = screen.canvas(Size(10, 5), Position(5, 5));
+        child.write(0, -1, 'X');
+        expect(screen.stringAt(5, 4), equals(''));
+      });
+
+      test('rejects write at x >= width', () {
+        var child = screen.canvas(Size(5, 5), Position(0, 0));
+        child.write(5, 0, 'X');
+        expect(screen.stringAt(5, 0), equals(''));
+      });
+
+      test('rejects write at y >= height', () {
+        var child = screen.canvas(Size(5, 5), Position(0, 0));
+        child.write(0, 5, 'X');
+        expect(screen.stringAt(0, 5), equals(''));
+      });
+
+      test('allows write within local bounds', () {
+        var child = screen.canvas(Size(5, 5), Position(2, 2));
+        child.write(4, 4, 'V');
+        expect(screen.stringAt(6, 6), equals('V'));
+      });
+
+      test('child canvas clips to parent bounds', () {
+        // Parent occupies screen columns 2-11 (width 10 at offset 2)
+        var parent = screen.canvas(Size(10, 5), Position(2, 0));
+        // Child thinks it has width 8 starting at offset 5 within parent
+        // Absolute: 2+5=7, so child occupies screen columns 7-14
+        // But parent ends at column 11, so writes at x>=5 should be clipped
+        var child = parent.canvas(Size(8, 3), Position(5, 0));
+        child.write(0, 0, 'A'); // abs 7 — within parent, OK
+        child.write(4, 0, 'B'); // abs 11 — within parent (< clipRight 12), OK
+        child.write(5, 0, 'C'); // abs 12 — clipped (>= clipRight 12)
+
+        expect(screen.stringAt(7, 0), equals('A'));
+        expect(screen.stringAt(11, 0), equals('B'));
+        expect(screen.stringAt(12, 0), equals(''));
+      });
+
+      test('nested canvases intersect clip bounds', () {
+        // Screen is 20x10
+        // Level 1: width 15 at offset 0 → clipRight=15
+        var level1 = screen.canvas(Size(15, 8), Position(0, 0));
+        // Level 2: width 12 at offset 5 within level1 → abs 5, clipRight=min(17,15)=15
+        var level2 = level1.canvas(Size(12, 6), Position(5, 0));
+        // Level 3: width 10 at offset 3 within level2 → abs 8, clipRight=min(18,15)=15
+        var level3 = level2.canvas(Size(10, 4), Position(3, 0));
+
+        level3.write(0, 0, 'X'); // abs 8 — OK
+        level3.write(6, 0, 'Y'); // abs 14 — OK (< 15)
+        level3.write(7, 0, 'Z'); // abs 15 — clipped (>= 15)
+
+        expect(screen.stringAt(8, 0), equals('X'));
+        expect(screen.stringAt(14, 0), equals('Y'));
+        expect(screen.stringAt(15, 0), equals(''));
+      });
+
+      test('occluded returns true for out-of-bounds local coords', () {
+        var child = screen.canvas(Size(5, 5), Position(0, 0));
+        expect(child.occluded(-1, 0), isTrue);
+        expect(child.occluded(0, -1), isTrue);
+        expect(child.occluded(5, 0), isTrue);
+        expect(child.occluded(0, 5), isTrue);
+      });
+
+      test('occluded respects clip bounds', () {
+        var parent = screen.canvas(Size(10, 5), Position(0, 0));
+        var child = parent.canvas(Size(15, 3), Position(5, 0));
+        // child at abs 5, clipRight=min(20,10)=10
+        // Local x=5 → abs 10, which is >= clipRight
+        expect(child.occluded(5, 0), isTrue);
+        // Local x=4 → abs 9, which is < clipRight
+        expect(child.occluded(4, 0), isFalse);
+      });
+
+      test('stringAt returns empty for out-of-bounds local coords', () {
+        var child = screen.canvas(Size(5, 5), Position(0, 0));
+        expect(child.stringAt(-1, 0), equals(''));
+        expect(child.stringAt(5, 0), equals(''));
+        expect(child.stringAt(0, -1), equals(''));
+        expect(child.stringAt(0, 5), equals(''));
+      });
+
+      test('stringAt respects clip bounds', () {
+        var parent = screen.canvas(Size(10, 5), Position(0, 0));
+        screen.write(12, 0, 'Z');
+        var child = parent.canvas(Size(15, 3), Position(5, 0));
+        // child at abs 5, clipRight=min(20,10)=10
+        // Local x=7 → abs 12, which is >= clipRight
+        expect(child.stringAt(7, 0), equals(''));
+        // Local x=4 → abs 9, which is < clipRight
+        expect(child.stringAt(4, 0), equals(''));
       });
     });
 

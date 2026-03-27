@@ -279,4 +279,120 @@ void main() {
       expect(manager.focusedView, isNull);
     });
   });
+
+  group('Focus propagation to Frame', () {
+    late NonFocusableView root;
+    late TestFocusContainer manager;
+
+    test('Frame.focused is true when child inside it is focused', () {
+      root = NonFocusableView();
+      var frame = Frame();
+      var child = FocusableView();
+      frame.children = [child];
+      root.children = [frame];
+      root.resize(Size(80, 40), Position(0, 0));
+      manager = TestFocusContainer(root);
+
+      manager.focus(child);
+
+      expect(child.focused, isTrue);
+      expect(frame.focused, isTrue);
+    });
+
+    test('Frame.focused is false when focus moves outside', () {
+      root = NonFocusableView();
+      var frame = Frame();
+      var child = FocusableView();
+      var outside = FocusableView();
+      frame.children = [child];
+      root.children = [frame, outside];
+      root.resize(Size(80, 40), Position(0, 0));
+      manager = TestFocusContainer(root);
+
+      manager.focus(child);
+      expect(frame.focused, isTrue);
+
+      manager.focus(outside);
+      expect(frame.focused, isFalse);
+    });
+
+    test('Frame stays focused when focus moves between its children', () {
+      root = NonFocusableView();
+      var frame = Frame();
+      var child1 = FocusableView();
+      var child2 = FocusableView();
+      frame.children = [child1, child2];
+      root.children = [frame];
+      root.resize(Size(80, 40), Position(0, 0));
+      manager = TestFocusContainer(root);
+
+      manager.focus(child1);
+      expect(frame.focused, isTrue);
+
+      manager.focus(child2);
+      expect(frame.focused, isTrue);
+    });
+
+    test('nested Frames: both ancestor Frames get focused', () {
+      root = NonFocusableView();
+      var outerFrame = Frame();
+      var innerFrame = Frame();
+      var child = FocusableView();
+      innerFrame.children = [child];
+      outerFrame.children = [innerFrame];
+      root.children = [outerFrame];
+      root.resize(Size(80, 40), Position(0, 0));
+      manager = TestFocusContainer(root);
+
+      manager.focus(child);
+
+      expect(innerFrame.focused, isTrue);
+      expect(outerFrame.focused, isTrue);
+    });
+
+    test('nested Frames: inner unfocuses when focus moves to outer-only child', () {
+      root = NonFocusableView();
+      var outerFrame = Frame();
+      var innerFrame = Frame();
+      var innerChild = FocusableView();
+      var outerChild = FocusableView();
+      innerFrame.children = [innerChild];
+      outerFrame.children = [innerFrame, outerChild];
+      root.children = [outerFrame];
+      root.resize(Size(80, 40), Position(0, 0));
+      manager = TestFocusContainer(root);
+
+      manager.focus(innerChild);
+      expect(innerFrame.focused, isTrue);
+      expect(outerFrame.focused, isTrue);
+
+      manager.focus(outerChild);
+      expect(innerFrame.focused, isFalse);
+      expect(outerFrame.focused, isTrue);
+    });
+
+    test('focusNext propagates focus to Frames correctly', () {
+      root = NonFocusableView();
+      var frame = Frame();
+      var child1 = FocusableView();
+      var child2 = FocusableView();
+      var outside = FocusableView();
+      frame.children = [child1, child2];
+      root.children = [frame, outside];
+      root.resize(Size(80, 40), Position(0, 0));
+      manager = TestFocusContainer(root);
+
+      manager.focusFirst(); // child1
+      expect(frame.focused, isTrue);
+
+      manager.focusNext(); // child2
+      expect(frame.focused, isTrue);
+
+      manager.focusNext(); // outside
+      expect(frame.focused, isFalse);
+
+      manager.focusNext(); // back to child1
+      expect(frame.focused, isTrue);
+    });
+  });
 }

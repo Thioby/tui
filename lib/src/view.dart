@@ -6,6 +6,7 @@ abstract class View with Sizable, Positionable {
 
   List<Text> text = [];
   List<View> children = [];
+  View? parent;
 
   bool focusable = false;
   bool focused = false;
@@ -27,6 +28,9 @@ abstract class View with Sizable, Positionable {
   void resize(Size size, Position position) {
     this.size = size;
     this.position = position;
+    for (var child in children) {
+      child.parent = this;
+    }
     resizeChildren();
     update();
   }
