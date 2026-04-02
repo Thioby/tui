@@ -8,7 +8,7 @@ class FpsMeter {
 
   double _curr = 0;
   double _avg = 0;
-  double _min = double.infinity;
+  double _min = 0;
   double _max = 0;
   double _ms = 0;
 
@@ -69,7 +69,7 @@ class FpsMeter {
     _times.clear();
     _curr = 0;
     _avg = 0;
-    _min = double.infinity;
+    _min = 0;
     _max = 0;
     _ms = 0;
     _last = DateTime.now();

@@ -12,9 +12,6 @@ class Window extends View with FocusManager {
 
   bool showFps = false;
 
-  /// Set to true when any state changed and a repaint is needed.
-  bool _needsRepaint = true;
-
   /// Whether this is the very first frame (forces full write).
   bool _firstFrame = true;
 
@@ -22,11 +19,6 @@ class Window extends View with FocusManager {
 
   @override
   View get focusRoot => this;
-
-  /// Mark the window as needing a repaint on the next frame.
-  void markDirty() {
-    _needsRepaint = true;
-  }
 
   void start() {
     _initTerm();
@@ -69,10 +61,7 @@ class Window extends View with FocusManager {
         _lastSz = termSize;
         _scr = Screen(termSize);
         _firstFrame = true;
-        _needsRepaint = true;
       }
-
-      _needsRepaint = true;
 
       _scr.clear();
       final canvas = _scr.canvas();
@@ -93,8 +82,6 @@ class Window extends View with FocusManager {
         }
         _scr.swapBuffers();
       }
-
-      _needsRepaint = false;
 
       if (showFps) {
         final fpsText = _loop.fps.compact;
