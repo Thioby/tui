@@ -118,9 +118,7 @@ class Select<T> extends View {
         if (selectedIndices.isEmpty) {
           selectedIndices.add(selectedIndex);
         }
-        var selected = selectedIndices.toList()
-          ..sort()
-          ..map((i) => options[i]).toList();
+        var selected = selectedIndices.toList()..sort();
         onSelectMultiple?.call(selected.map((i) => options[i]).toList());
       } else {
         onSelect?.call(options[selectedIndex]);

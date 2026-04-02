@@ -188,10 +188,10 @@ class TextArea extends View {
       return true;
     }
 
-    if (key.length == 1 && key.codeUnitAt(0) >= 32) {
+    if (key.runes.length == 1 && key.runes.first >= 32) {
       var line = _currLn;
       _lns[cursorY] = line.substring(0, cursorX) + key + line.substring(cursorX);
-      cursorX++;
+      cursorX += key.length;
       _scrollX();
       onChange?.call(value);
       update();
@@ -210,6 +210,41 @@ class TextArea extends View {
     }
 
     return false;
+  }
+
+  @override
+  bool onPaste(String text) {
+    var clean = text.replaceAll('\r', '');
+    if (clean.isEmpty) return true;
+
+    var lines = clean.split('\n');
+    var before = _currLn.substring(0, cursorX);
+    var after = _currLn.substring(cursorX);
+
+    if (lines.length == 1) {
+      _lns[cursorY] = before + lines[0] + after;
+      cursorX += lines[0].length;
+    } else {
+      _lns[cursorY] = before + lines.first;
+      for (var i = 1; i < lines.length - 1; i++) {
+        _lns.insert(cursorY + i, lines[i]);
+      }
+      _lns.insert(cursorY + lines.length - 1, lines.last + after);
+      cursorY += lines.length - 1;
+      cursorX = lines.last.length;
+    }
+
+    if (maxLines != null && _lns.length > maxLines!) {
+      _lns.removeRange(maxLines!, _lns.length);
+      cursorY = cursorY.clamp(0, _lns.length - 1);
+      cursorX = cursorX.clamp(0, _currLn.length);
+    }
+
+    _scrollY();
+    _scrollX();
+    onChange?.call(value);
+    update();
+    return true;
   }
 
   void _scrollY() {

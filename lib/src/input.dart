@@ -104,12 +104,12 @@ class Input extends View {
       return true;
     }
 
-    if (key.length == 1 && key.codeUnitAt(0) >= 32) {
+    if (key.runes.length == 1 && key.runes.first >= 32) {
       if (maxLength == null || _val.length < maxLength!) {
         _val = _val.substring(0, cursorPosition) +
             key +
             _val.substring(cursorPosition);
-        cursorPosition++;
+        cursorPosition += key.length;
         onChange?.call(_val);
         update();
       }
@@ -117,6 +117,26 @@ class Input extends View {
     }
 
     return false;
+  }
+
+  @override
+  bool onPaste(String text) {
+    var clean = text.replaceAll('\r', '').replaceAll('\n', ' ');
+    if (clean.isEmpty) return true;
+
+    if (maxLength != null) {
+      var available = maxLength! - _val.length;
+      if (available <= 0) return true;
+      clean = String.fromCharCodes(clean.runes.take(available));
+    }
+
+    _val = _val.substring(0, cursorPosition) +
+        clean +
+        _val.substring(cursorPosition);
+    cursorPosition += clean.length;
+    onChange?.call(_val);
+    update();
+    return true;
   }
 
   @override

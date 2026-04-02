@@ -3,12 +3,12 @@ part of tui;
 /// Tracks frame timing and calculates FPS statistics.
 class FpsMeter {
   final int _samples;
-  final List<double> _times = [];
+  final Queue<double> _times = Queue();
   DateTime _last = DateTime.now();
 
   double _curr = 0;
   double _avg = 0;
-  double _min = double.infinity;
+  double _min = 0;
   double _max = 0;
   double _ms = 0;
 
@@ -26,15 +26,20 @@ class FpsMeter {
 
     _times.add(_ms);
     if (_times.length > _samples) {
-      _times.removeAt(0);
+      _times.removeFirst();
     }
 
     if (_times.isNotEmpty) {
-      final avgTime = _times.reduce((a, b) => a + b) / _times.length;
+      var sum = 0.0;
+      var minTime = double.infinity;
+      var maxTime = 0.0;
+      for (final t in _times) {
+        sum += t;
+        if (t < minTime) minTime = t;
+        if (t > maxTime) maxTime = t;
+      }
+      final avgTime = sum / _times.length;
       _avg = avgTime > 0 ? 1000.0 / avgTime : 0;
-
-      final minTime = _times.reduce((a, b) => a < b ? a : b);
-      final maxTime = _times.reduce((a, b) => a > b ? a : b);
       _max = minTime > 0 ? 1000.0 / minTime : 0;
       _min = maxTime > 0 ? 1000.0 / maxTime : 0;
     }
@@ -64,7 +69,7 @@ class FpsMeter {
     _times.clear();
     _curr = 0;
     _avg = 0;
-    _min = double.infinity;
+    _min = 0;
     _max = 0;
     _ms = 0;
     _last = DateTime.now();

@@ -21,14 +21,11 @@ mixin FocusManager {
     var oldFrames = _ancestorFrames(_focused);
     var oldFocused = _focused;
 
-    // Update view state first
     _focused?.focused = false;
     _focused = view;
     view.focused = true;
 
-    // Update frame state
     var newFrames = _ancestorFrames(view);
-
     for (var frame in oldFrames) {
       if (!newFrames.contains(frame)) frame.focused = false;
     }
@@ -36,7 +33,6 @@ mixin FocusManager {
       if (!oldFrames.contains(frame)) frame.focused = true;
     }
 
-    // Fire callbacks last (all state is now consistent)
     oldFocused?.onBlur();
     view.onFocus();
   }
@@ -69,12 +65,8 @@ mixin FocusManager {
     focus(views[prevIdx]);
   }
 
-  bool routeKeyToFocused(String key) {
-    if (_focused != null && _focused!.onKey(key)) {
-      return true;
-    }
-    return false;
-  }
+  bool routeKeyToFocused(String key) => _focused?.onKey(key) ?? false;
+  bool routePasteToFocused(String text) => _focused?.onPaste(text) ?? false;
 
   Set<Frame> _ancestorFrames(View? view) {
     var frames = <Frame>{};

@@ -15,6 +15,7 @@ class FocusableView extends View {
   bool onFocusCalled = false;
   bool onBlurCalled = false;
   List<String> keysReceived = [];
+  List<String> pastesReceived = [];
 
   FocusableView() {
     focusable = true;
@@ -33,6 +34,12 @@ class FocusableView extends View {
   @override
   bool onKey(String key) {
     keysReceived.add(key);
+    return true;
+  }
+
+  @override
+  bool onPaste(String text) {
+    pastesReceived.add(text);
     return true;
   }
 }
@@ -393,6 +400,48 @@ void main() {
 
       manager.focusNext(); // back to child1
       expect(frame.focused, isTrue);
+    });
+  });
+
+  group('Paste routing', () {
+    late NonFocusableView root;
+    late FocusableView view1;
+    late FocusableView view2;
+    late TestFocusContainer manager;
+
+    setUp(() {
+      root = NonFocusableView();
+      view1 = FocusableView();
+      view2 = FocusableView();
+      root.children = [view1, view2];
+      manager = TestFocusContainer(root);
+    });
+
+    test('routePasteToFocused sends paste to focused view', () {
+      manager.focus(view1);
+      var handled = manager.routePasteToFocused('pasted text');
+      expect(handled, isTrue);
+      expect(view1.pastesReceived, equals(['pasted text']));
+    });
+
+    test('routePasteToFocused returns false when no view focused', () {
+      var handled = manager.routePasteToFocused('text');
+      expect(handled, isFalse);
+    });
+
+    test('paste goes to currently focused view only', () {
+      manager.focus(view1);
+      manager.routePasteToFocused('first');
+      manager.focus(view2);
+      manager.routePasteToFocused('second');
+
+      expect(view1.pastesReceived, equals(['first']));
+      expect(view2.pastesReceived, equals(['second']));
+    });
+
+    test('default onPaste returns false', () {
+      var view = NonFocusableView();
+      expect(view.onPaste('text'), isFalse);
     });
   });
 }

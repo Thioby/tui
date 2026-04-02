@@ -15,6 +15,7 @@ abstract class View with Sizable, Positionable {
   void onBlur() {}
 
   bool onKey(String key) => false;
+  bool onPaste(String text) => false;
 
   List<View> get focusableViews {
     final result = <View>[];
