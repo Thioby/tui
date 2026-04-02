@@ -162,23 +162,8 @@ class BigText extends View {
     text = [];
     if (width < 1 || height < 1) return;
 
-    var fontData = _fontData(font);
-    var charHeight = fontData.height;
-    var lines = List.generate(charHeight, (_) => StringBuffer());
-
-    for (var i = 0; i < _txt.length; i++) {
-      var char = _txt[i];
-      var glyph = fontData.glyphs[char] ?? fontData.glyphs[' ']!;
-
-      for (var row = 0; row < charHeight; row++) {
-        if (row < glyph.length) {
-          lines[row].write(glyph[row]);
-        }
-        if (i < _txt.length - 1) {
-          lines[row].write(' ' * letterSpacing);
-        }
-      }
-    }
+    var charHeight = _fontData(font).height;
+    var lines = generateLines(_txt, font: font, letterSpacing: letterSpacing);
 
     var textWidth = lines.isNotEmpty ? lines[0].length : 0;
     var totalHeight = charHeight;

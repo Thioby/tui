@@ -141,18 +141,20 @@ class Table<T> extends View {
   }
 
   void _calcWidths() {
-    for (var col in columns) {
-      if (col.width == null) {
-        var maxWidth = col.title.length;
-        for (var row in rows) {
-          var cells = rowBuilder(row);
-          var idx = columns.indexOf(col);
-          if (idx < cells.length && cells[idx].length > maxWidth) {
-            maxWidth = cells[idx].length;
-          }
+    var needsCalc = columns.any((c) => c.width == null);
+    if (!needsCalc) return;
+
+    var maxWidths = List.generate(columns.length, (i) => columns[i].title.length);
+    for (var row in rows) {
+      var cells = rowBuilder(row);
+      for (var i = 0; i < columns.length && i < cells.length; i++) {
+        if (columns[i].width == null && cells[i].length > maxWidths[i]) {
+          maxWidths[i] = cells[i].length;
         }
-        col.width = maxWidth + 2;
       }
+    }
+    for (var i = 0; i < columns.length; i++) {
+      columns[i].width ??= maxWidths[i] + 2;
     }
   }
 

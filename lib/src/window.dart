@@ -2,6 +2,8 @@ part of tui;
 
 /// Top-level view that manages the application lifecycle.
 class Window extends View with FocusManager {
+  static final _ansiPattern = RegExp(r'\x1B\[[0-9;]*m');
+
   late Screen _scr;
   late RenderLoop _loop;
   late StreamSubscription<String> _in;
@@ -64,12 +66,7 @@ class Window extends View with FocusManager {
         _needsRepaint = true;
       }
 
-      // Always repaint for now — animations and spinners set
-      // _needsRepaint via markDirty(). Until all widgets cooperate,
-      // we default to true each frame.
       _needsRepaint = true;
-
-      if (!_needsRepaint) return;
 
       _scr.clear();
       final canvas = _scr.canvas();
@@ -95,10 +92,7 @@ class Window extends View with FocusManager {
 
       if (showFps) {
         final fpsText = _loop.fps.compact;
-        final plainText = fpsText.replaceAll(
-          RegExp(r'\x1B\[[0-9;]*m'),
-          '',
-        );
+        final plainText = fpsText.replaceAll(_ansiPattern, '');
         final fpsX = termSize.width - plainText.length - 1;
         if (fpsX > 0) {
           stdout.write(

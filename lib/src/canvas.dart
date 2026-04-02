@@ -27,27 +27,27 @@ class Canvas with Sizable, Positionable {
     );
   }
 
-  bool occluded(int x, int y) {
-    if (x < 0 || y < 0 || x >= width || y >= height) return true;
+  /// Returns absolute screen coordinates, or null if clipped.
+  (int, int)? _abs(int x, int y) {
+    if (x < 0 || y < 0 || x >= width || y >= height) return null;
     var absX = position.x + x;
     var absY = position.y + y;
-    if (absX >= _clipRight || absY >= _clipBottom) return true;
-    return _scr.occluded(absX, absY);
+    if (absX >= _clipRight || absY >= _clipBottom) return null;
+    return (absX, absY);
+  }
+
+  bool occluded(int x, int y) {
+    var pt = _abs(x, y);
+    return pt == null || _scr.occluded(pt.$1, pt.$2);
   }
 
   void write(int x, int y, String char) {
-    if (x < 0 || y < 0 || x >= width || y >= height) return;
-    var absX = position.x + x;
-    var absY = position.y + y;
-    if (absX >= _clipRight || absY >= _clipBottom) return;
-    _scr.write(absX, absY, char);
+    var pt = _abs(x, y);
+    if (pt != null) _scr.write(pt.$1, pt.$2, char);
   }
 
   String stringAt(int x, int y) {
-    if (x < 0 || y < 0 || x >= width || y >= height) return '';
-    var absX = position.x + x;
-    var absY = position.y + y;
-    if (absX >= _clipRight || absY >= _clipBottom) return '';
-    return _scr.stringAt(absX, absY);
+    var pt = _abs(x, y);
+    return pt != null ? _scr.stringAt(pt.$1, pt.$2) : '';
   }
 }
