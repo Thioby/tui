@@ -66,6 +66,7 @@ mixin FocusManager {
   }
 
   bool routeKeyToFocused(String key) => _focused?.onKey(key) ?? false;
+  bool routePasteToFocused(String text) => _focused?.onPaste(text) ?? false;
 
   Set<Frame> _ancestorFrames(View? view) {
     var frames = <Frame>{};

@@ -15,6 +15,9 @@ abstract class ANSI {
   static const String ERASE_SCREEN = "${ESC}2J";
   static const String ERASE_TO_END_OF_LINE = "${ESC}K";
 
+  static const String BRACKETED_PASTE_ON = "${ESC}?2004h";
+  static const String BRACKETED_PASTE_OFF = "${ESC}?2004l";
+
   static String setCursorPosition(int x, int y) {
     return ESC + "${y + 1};${x + 1}H";
   }

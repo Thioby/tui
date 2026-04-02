@@ -18,6 +18,7 @@ part 'src/escape.dart';
 part 'src/focus.dart';
 part 'src/window.dart';
 part 'src/render_loop.dart';
+part 'src/input_parser.dart';
 
 part 'src/tree.dart';
 part 'src/page_view.dart';
